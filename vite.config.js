@@ -3,10 +3,10 @@ import react from '@vitejs/plugin-react';
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  base: './', // ✅ Ensures relative asset paths for Electron (file://)
+  base: '/', // ✅ Correct for web deployment
   plugins: [react()],
   build: {
-    outDir: 'dist',       // ✅ Ensure Vite outputs to 'dist' (Electron expects this)
-    emptyOutDir: true,    // 🔁 Optional: Clears 'dist' before each build
+    outDir: 'dist',    // Default Vite output dir
+    emptyOutDir: true, // Clears 'dist' before each build
   },
 });
