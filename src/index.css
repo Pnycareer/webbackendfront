@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+/* Only YouTube icon */
+.ql-toolbar button.ql-youtube svg {
+    width: 30px;
+    height: 30px;
+  }
+
+  
+  
