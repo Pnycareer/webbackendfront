@@ -51,6 +51,12 @@ const ALL_SIDEBAR_ITEMS = [
         href: "/dashboard/courses",
       },
       {
+        name: "Courses Faq's",
+        icon: BookAIcon,
+        color: "#EC4899",
+        href: "/dashboard/courses-faqs",
+      },  
+      {
         name: "Course Module",
         icon: SiMetrodelaciudaddemexico,
         color: "#EC4899",

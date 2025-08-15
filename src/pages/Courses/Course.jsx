@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, Search } from "lucide-react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import useCourses from "../../hooks/useCourses";
+import axios from "../../utils/axios";
+import { toast } from "react-hot-toast";
 
 const Courses = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -10,6 +12,9 @@ const Courses = () => {
   const [filteredData, setFilteredData] = useState([]);
   const [openCategories, setOpenCategories] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [editingCategoryId, setEditingCategoryId] = useState(null);
+  const [editedDescription, setEditedDescription] = useState("");
+
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -75,6 +80,21 @@ const Courses = () => {
     navigate(`/dashboard/editcourse/${courseId}`);
   };
 
+  const handleSaveCategoryDescription = async (categoryId) => {
+    try {
+      await axios.patch(`/courses/category-update/${categoryId}`, {
+        category_Description: editedDescription,
+      });
+      toast.success("Category description updated!");
+      setEditingCategoryId(null);
+      setEditedDescription("");
+      fetchAndUpdate();
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to update category description.");
+    }
+  };
+
   const isAddCoursePage = location.pathname.includes("addcourse");
 
   return (
@@ -132,24 +152,84 @@ const Courses = () => {
                 key={category._id}
                 className="mb-6 border rounded-lg bg-gray-900 border-gray-700"
               >
-                <button
-                  onClick={() => toggleCategory(category._id)}
-                  className="w-full flex justify-between items-center px-6 py-4 text-left bg-gray-800 hover:bg-gray-700 transition-all"
-                >
-                  <h3 className="text-lg font-semibold text-white">
-                    {category.category_Name.charAt(0).toUpperCase() +
-                      category.category_Name.slice(1)}
-                  </h3>
-                  <motion.div
-                    animate={{
-                      rotate: openCategories.includes(category._id) ? 180 : 0,
-                    }}
-                    transition={{ duration: 0.3 }}
+                {/* Category Header with Edit */}
+                <div className="w-full flex justify-between items-center px-6 py-4 bg-gray-800 hover:bg-gray-700 transition-all">
+                  <div
+                    onClick={() => toggleCategory(category._id)}
+                    className="flex-1 cursor-pointer"
                   >
-                    <ChevronDown className="text-gray-300" />
-                  </motion.div>
-                </button>
+                    <h3 className="text-lg font-semibold text-white capitalize">
+                      {category.category_Name}
+                    </h3>
+                  </div>
+                  <div className="flex gap-3 items-center ml-4">
+                    {editingCategoryId === category._id ? (
+                      <>
+                        <button
+                          onClick={() =>
+                            handleSaveCategoryDescription(category._id)
+                          }
+                          className="text-green-400 hover:text-green-300 text-sm"
+                        >
+                          Save
+                        </button>
+                        <button
+                          onClick={() => {
+                            setEditingCategoryId(null);
+                            setEditedDescription("");
+                          }}
+                          className="text-red-400 hover:text-red-300 text-sm"
+                        >
+                          Cancel
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setEditingCategoryId(category._id);
+                          setEditedDescription(
+                            category.category_Description || ""
+                          );
+                        }}
+                        className="text-blue-400 hover:text-blue-300 text-sm"
+                      >
+                        Edit
+                      </button>
+                    )}
+                    <motion.div
+                      animate={{
+                        rotate: openCategories.includes(category._id) ? 180 : 0,
+                      }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <ChevronDown className="text-gray-300" />
+                    </motion.div>
+                  </div>
+                </div>
 
+                {/* Description Field */}
+                {openCategories.includes(category._id) && (
+                  <div className="px-6 pb-2">
+                    {editingCategoryId === category._id ? (
+                      <textarea
+                        rows={2}
+                        className="w-full p-2 rounded bg-gray-800 text-white border border-gray-600 focus:outline-none focus:ring mt-2"
+                        value={editedDescription}
+                        onChange={(e) =>
+                          setEditedDescription(e.target.value)
+                        }
+                        placeholder="Edit category description..."
+                      />
+                    ) : (
+                      <p className="text-gray-400 italic mt-2">
+                        {category.category_Description ||
+                          "No description provided."}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Course Table */}
                 <AnimatePresence>
                   {openCategories.includes(category._id) && (
                     <motion.div

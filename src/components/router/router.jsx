@@ -14,6 +14,9 @@ const EditCategory = lazy(() => import("../category/Editcategory"));
 const Courses = lazy(() => import("../../pages/Courses/Course"));
 const AddCourse = lazy(() => import("../../pages/Courses/AddCourse"));
 const EditCourse = lazy(() => import("../courses/Getcourse/EditCourse"));
+const Faqstable = lazy(() => import("../../pages/CoursesFaq/FaqsTable"));
+const AddFaqs = lazy(() => import("../../pages/CoursesFaq/AddFaqs"));
+const EditCourseFaq = lazy(() => import("../../pages/CoursesFaq/EditCourseFaq"));
 const CourseModulesTable = lazy(() => import("../../pages/CourseModel/ModelCourse"));
 const EditModel = lazy(() => import("../../pages/CourseModel/EditModel"));
 const AddModel = lazy(() => import("../../pages/CourseModel/AddModel"));
@@ -102,6 +105,9 @@ const router = createBrowserRouter([
       { path: "edit-category/:id", element: withSuspense(EditCategory) },
 
       { path: "courses", element: withSuspense(Courses) },
+      { path: "courses-faqs", element: withSuspense(Faqstable) },
+      { path: "add-faqs", element: withSuspense(AddFaqs) },
+      { path: "editfaqs/:courseId/:faqId", element: withSuspense(EditCourseFaq) },
       { path: "addcourse", element: withSuspense(AddCourse) },
       { path: "editcourse/:id", element: withSuspense(EditCourse) },
 
