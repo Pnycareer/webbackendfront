@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
 import Select from "react-select";
+import axiosInstance from "../../utils/axios"; // wherever you put your axios instance
+
 
 const AddInstructor = () => {
   const [instructorName, setInstructorName] = useState("");
@@ -14,17 +16,17 @@ const AddInstructor = () => {
   const navigate = useNavigate();
 
   // Fetch categories on component mount
-  useEffect(() => {
+useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/v1/categories`
-        );
+        const response = await axiosInstance.get("/api/v1/categories");
+
         // Format for react-select
         const options = response.data.map((category) => ({
           value: category.url_Slug,
           label: category.Category_Name,
         }));
+
         setCategories(options);
       } catch (error) {
         toast.error("Error fetching categories: " + error.message);
@@ -33,6 +35,7 @@ const AddInstructor = () => {
 
     fetchCategories();
   }, []);
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
