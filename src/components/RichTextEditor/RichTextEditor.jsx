@@ -1,8 +1,8 @@
 import React, { useEffect, useRef } from "react";
 import ReactQuill from "react-quill";
 import Quill from "quill";
+import axios from "axios";
 import "react-quill/dist/quill.snow.css";
-import axiosInstance from "../../utils/axios";
 
 const RichTextEditor = ({ value, onChange, height = "300px" }) => {
   const quillRef = useRef();
@@ -17,15 +17,6 @@ const RichTextEditor = ({ value, onChange, height = "300px" }) => {
     }
   }, []);
 
-  const MAX_MB = 5;
-  const ALLOWED_TYPES = [
-    "image/png",
-    "image/jpeg",
-    "image/jpg",
-    "image/webp",
-    "image/gif",
-  ];
-
   const handleImageUpload = () => {
     const input = document.createElement("input");
     input.setAttribute("type", "file");
@@ -33,57 +24,22 @@ const RichTextEditor = ({ value, onChange, height = "300px" }) => {
     input.click();
 
     input.onchange = async () => {
-      const file = input.files?.[0];
-      if (!file) return;
-
-      // basic client-side validation (don’t trust it on server though)
-      if (!ALLOWED_TYPES.includes(file.type)) {
-        console.error("Unsupported image type:", file.type);
-        return;
-      }
-      if (file.size > MAX_MB * 1024 * 1024) {
-        console.error(`Image too large. Max ${MAX_MB}MB.`);
-        return;
-      }
-
+      const file = input.files[0];
       const formData = new FormData();
-      // field name must match what your server expects
       formData.append("editorImage", file);
 
       try {
-        const res = await axiosInstance.post(
-          "/upload/upload-editor-image",
+        const res = await axios.post(
+          `https://api.pnytrainings.com/upload/upload-editor-image`,
           formData,
-          {
-            // Let the browser set the boundary; just declare multipart
-            headers: { "Content-Type": "multipart/form-data" },
-          }
+          { headers: { "Content-Type": "multipart/form-data" } }
         );
-
-        const imageUrl = res?.data?.url;
-        if (!imageUrl) {
-          console.error("Upload succeeded but no URL in response:", res?.data);
-          return;
-        }
-
-        const quill = quillRef.current?.getEditor?.();
-        if (!quill) {
-          console.error("Quill editor not ready");
-          return;
-        }
-
-        // insert at current selection or append at end if no selection
+        const imageUrl = res.data.url;
+        const quill = quillRef.current.getEditor();
         const range = quill.getSelection();
-        const index = range?.index ?? quill.getLength();
-        quill.insertEmbed(index, "image", imageUrl, "user");
-        // put cursor after the image for nicer UX
-        quill.setSelection(index + 1, 0, "silent");
+        quill.insertEmbed(range.index, "image", imageUrl);
       } catch (err) {
-        // your axiosInstance already handles auth headers; this is network/API error
-        console.error(
-          "Image upload error:",
-          err?.response?.data || err.message || err
-        );
+        console.error("Image upload error:", err);
       }
     };
   };
@@ -104,7 +60,7 @@ const RichTextEditor = ({ value, onChange, height = "300px" }) => {
       container: [
         [{ header: [1, 2, 3, false] }],
         ["bold", "italic", "underline"],
-        [{ align: [] }], // <<== ADD ALIGNMENT BUTTONS
+        [{ align: [] }],  // <<== ADD ALIGNMENT BUTTONS
         ["link", "image", "video", "youtube"],
         [{ list: "ordered" }, { list: "bullet" }],
       ],
@@ -116,16 +72,9 @@ const RichTextEditor = ({ value, onChange, height = "300px" }) => {
   };
 
   const formats = [
-    "header",
-    "bold",
-    "italic",
-    "underline",
-    "link",
-    "image",
-    "video",
-    "list",
-    "bullet",
-    "align", // <<== IMPORTANT: ADD align in formats
+    "header", "bold", "italic", "underline", 
+    "link", "image", "video", "list", "bullet",
+    "align" // <<== IMPORTANT: ADD align in formats
   ];
 
   return (
