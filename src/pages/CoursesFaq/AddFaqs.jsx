@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import useCourseModel from "../../hooks/useCourseModel";
 import axios from "../../utils/axios";
+import { Link } from "react-router-dom";
 
 const AddFaqs = () => {
   const [categories, setCategories] = useState([]);
@@ -13,10 +14,7 @@ const AddFaqs = () => {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
 
-  const {
-    fetchCategories,
-    fetchCoursesByCategory
-  } = useCourseModel();
+  const { fetchCategories, fetchCoursesByCategory } = useCourseModel();
 
   // Load categories on mount
   useEffect(() => {
@@ -60,36 +58,36 @@ const AddFaqs = () => {
     setFaqs(faqs.filter((_, i) => i !== index));
   };
 
- const handleSubmit = async (e) => {
-  e.preventDefault();
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-  if (!selectedCourseId) {
-    setError("❌ Please select a course.");
-    return;
-  }
-
-  setLoading(true);
-  setError("");
-  setSuccess(false);
-
-  try {
-    const res = await axios.post(`/courses/add-faq/${selectedCourseId}`, {
-      faqs,
-    });
-
-    if (res.data.success) {
-      setSuccess(true);
-      setFaqs([{ question: "", answer: "" }]); // Reset form
-    } else {
-      setError(res.data.message || "Failed to add FAQs.");
+    if (!selectedCourseId) {
+      setError("❌ Please select a course.");
+      return;
     }
-  } catch (err) {
-    console.error("Error adding FAQ:", err);
-    setError("❌ Something went wrong.");
-  } finally {
-    setLoading(false);
-  }
-};
+
+    setLoading(true);
+    setError("");
+    setSuccess(false);
+
+    try {
+      const res = await axios.post(`/courses/add-faq/${selectedCourseId}`, {
+        faqs,
+      });
+
+      if (res.data.success) {
+        setSuccess(true);
+        setFaqs([{ question: "", answer: "" }]); // Reset form
+      } else {
+        setError(res.data.message || "Failed to add FAQs.");
+      }
+    } catch (err) {
+      console.error("Error adding FAQ:", err);
+      setError("❌ Something went wrong.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen overflow-y-auto w-full bg-gray-100 flex justify-center items-start p-4 md:p-10">
@@ -98,15 +96,22 @@ const AddFaqs = () => {
           Add FAQs to Course
         </h2>
 
-        {success && <p className="text-green-600 text-sm mb-4 text-center">✅ FAQs added successfully!</p>}
-        {error && <p className="text-red-500 text-sm mb-4 text-center">{error}</p>}
+        {success && (
+          <p className="text-green-600 text-sm mb-4 text-center">
+            ✅ FAQs added successfully!
+          </p>
+        )}
+        {error && (
+          <p className="text-red-500 text-sm mb-4 text-center">{error}</p>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
-
           {/* Category Selector */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-gray-700 font-medium mb-1">Select Category</label>
+              <label className="block text-gray-700 font-medium mb-1">
+                Select Category
+              </label>
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
@@ -124,7 +129,9 @@ const AddFaqs = () => {
 
             {/* Course Selector */}
             <div>
-              <label className="block text-gray-700 font-medium mb-1">Select Course</label>
+              <label className="block text-gray-700 font-medium mb-1">
+                Select Course
+              </label>
               <select
                 value={selectedCourseId}
                 onChange={(e) => setSelectedCourseId(e.target.value)}
@@ -161,20 +168,28 @@ const AddFaqs = () => {
                   )}
                 </div>
                 <div className="mb-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Question</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Question
+                  </label>
                   <input
                     type="text"
                     value={faq.question}
-                    onChange={(e) => handleChange(index, "question", e.target.value)}
+                    onChange={(e) =>
+                      handleChange(index, "question", e.target.value)
+                    }
                     className="w-full px-4 py-2 border border-gray-300 rounded-md"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Answer</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Answer
+                  </label>
                   <textarea
                     value={faq.answer}
-                    onChange={(e) => handleChange(index, "answer", e.target.value)}
+                    onChange={(e) =>
+                      handleChange(index, "answer", e.target.value)
+                    }
                     className="w-full px-4 py-2 border border-gray-300 rounded-md"
                     rows={3}
                     required
@@ -202,6 +217,14 @@ const AddFaqs = () => {
             </button>
           </div>
         </form>
+        <div className="text-center mt-4">
+          <Link
+            to="/dashboard/courses-faqs" // replace with your actual back URL
+            className="inline-block px-6 py-2 bg-gray-300 text-black rounded-lg hover:bg-gray-400 transition"
+          >
+            ← Back
+          </Link>
+        </div>
       </div>
     </div>
   );

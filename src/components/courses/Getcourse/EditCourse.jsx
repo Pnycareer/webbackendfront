@@ -113,12 +113,13 @@ const EditCourse = () => {
   };
 
   const handleSubmit = async (e) => {
-     e.preventDefault(); // 🔥 This is what you're missing!
+    e.preventDefault(); // 🔥 This is what you're missing!
+    const { faqs, ...courseWithoutFaqs } = course;
     await updateCourse({
       id,
-      data: course,
+      data: courseWithoutFaqs,
       brochureFile,
-      setIsSubmitting: null, // optional, or add one
+      setIsSubmitting: null,
     });
   };
 
@@ -250,6 +251,7 @@ const EditCourse = () => {
           {/* Course Description */}
           <div className="mb-4">
             <label className="block text-gray-300">Course Description</label>
+            
             <RichTextEditor
               value={course.Course_Description}
               onChange={(content) =>

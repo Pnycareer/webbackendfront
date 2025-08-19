@@ -33,6 +33,7 @@ const Webbanner = () => {
   // Upload New Banner
  const uploadBanner = async () => {
   if (!selectedFile) {
+    toast.dismiss(); // clears existing toasts
     toast.error("Please select an image!");
     return;
   }

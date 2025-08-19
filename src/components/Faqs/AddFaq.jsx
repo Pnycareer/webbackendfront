@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import axios from "../../utils/axios";
-
+import { Link } from "react-router-dom";
 
 export default function FaqPostPage() {
   const [category, setCategory] = useState({ name: "", url_slug: "" });
@@ -50,37 +50,34 @@ export default function FaqPostPage() {
   };
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  const formData = new FormData();
-  formData.append("category", JSON.stringify(category));
-  formData.append("faqs", JSON.stringify(faqs));
-  if (faqImage) formData.append("faqImage", faqImage);
+    const formData = new FormData();
+    formData.append("category", JSON.stringify(category));
+    formData.append("faqs", JSON.stringify(faqs));
+    if (faqImage) formData.append("faqImage", faqImage);
 
-  try {
-    const res = await axios.post(
-      `/api/v1/faqs`,
-      formData,
-      {
+    try {
+      const res = await axios.post(`/api/v1/faqs`, formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
-      }
-    );
+      });
 
-    // Assuming your backend sends something like: { message: "FAQ posted successfully" }
-    alert(res.data.message || "FAQ posted!");
-    
-    // Reset state after success
-    setCategory({ name: "", url_slug: "" });
-    setFaqs([{ question: "", answer: "" }]);
-    setFaqImage(null);
-  } catch (err) {
-    // Grab backend message or default to err.message
-    const errorMessage = err.response?.data?.message || "Something went wrong.";
-    alert("Error: " + errorMessage);
-  }
-};  
+      // Assuming your backend sends something like: { message: "FAQ posted successfully" }
+      alert(res.data.message || "FAQ posted!");
+
+      // Reset state after success
+      setCategory({ name: "", url_slug: "" });
+      setFaqs([{ question: "", answer: "" }]);
+      setFaqImage(null);
+    } catch (err) {
+      // Grab backend message or default to err.message
+      const errorMessage =
+        err.response?.data?.message || "Something went wrong.";
+      alert("Error: " + errorMessage);
+    }
+  };
 
   return (
     <motion.div
@@ -212,6 +209,14 @@ export default function FaqPostPage() {
           >
             Submit FAQ
           </button>
+          <div className="text-center mt-4">
+            <Link
+              to="/dashboard/courses-faqs" // replace with your actual back URL
+              className="inline-block px-6 py-2 bg-gray-300 text-black rounded-lg hover:bg-gray-400 transition"
+            >
+              ← Back
+            </Link>
+          </div>
         </div>
       </form>
     </motion.div>

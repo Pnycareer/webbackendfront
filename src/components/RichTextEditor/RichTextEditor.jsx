@@ -44,6 +44,9 @@ const RichTextEditor = ({ value, onChange, height = "300px" }) => {
     };
   };
 
+
+  
+
   const insertYouTubeVideo = () => {
     const videoId = prompt("Enter YouTube video ID:");
     if (!videoId) return;
