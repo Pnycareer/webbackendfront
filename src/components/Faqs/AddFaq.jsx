@@ -211,7 +211,7 @@ export default function FaqPostPage() {
           </button>
           <div className="text-center mt-4">
             <Link
-              to="/dashboard/courses-faqs" // replace with your actual back URL
+              to="/dashboard/faqs" // replace with your actual back URL
               className="inline-block px-6 py-2 bg-gray-300 text-black rounded-lg hover:bg-gray-400 transition"
             >
               ← Back

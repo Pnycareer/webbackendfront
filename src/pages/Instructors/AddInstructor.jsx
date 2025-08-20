@@ -5,7 +5,6 @@ import { toast } from "react-toastify";
 import Select from "react-select";
 import axiosInstance from "../../utils/axios"; // wherever you put your axios instance
 
-
 const AddInstructor = () => {
   const [instructorName, setInstructorName] = useState("");
   const [instructorImage, setInstructorImage] = useState(null);
@@ -16,7 +15,7 @@ const AddInstructor = () => {
   const navigate = useNavigate();
 
   // Fetch categories on component mount
-useEffect(() => {
+  useEffect(() => {
     const fetchCategories = async () => {
       try {
         const response = await axiosInstance.get("/api/v1/categories");
@@ -36,7 +35,6 @@ useEffect(() => {
     fetchCategories();
   }, []);
 
-
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -52,8 +50,8 @@ useEffect(() => {
     });
 
     try {
-      const response = await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/instructors/add-instructor`,
+      const response = await axiosInstance.post(
+        "/api/instructors/add-instructor", // baseURL already handled by instance
         formData,
         {
           headers: {
@@ -61,15 +59,15 @@ useEffect(() => {
           },
         }
       );
+
       console.log("Instructor Added:", response.data);
-      navigate("/instructors");
+      navigate("/dashboard/instructors");
       toast.success("Instructor added successfully");
     } catch (error) {
       console.error("Error adding instructor:", error.message);
       toast.error("Error adding instructor: " + error.message);
     }
   };
-
 
   return (
     <div className="p-6 bg-gray-800 rounded-lg shadow-md w-full mx-auto">

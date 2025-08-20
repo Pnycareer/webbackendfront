@@ -30,10 +30,12 @@ const RichTextEditor = ({ value, onChange, height = "300px" }) => {
 
       try {
         const res = await axios.post(
-          `https://api.pnytrainings.com/upload/upload-editor-image`,
+          `${import.meta.env.VITE_API_URL}/upload/upload-editor-image`,
           formData,
           { headers: { "Content-Type": "multipart/form-data" } }
         );
+
+        console.log(res.data.url , 'resurl')
         const imageUrl = res.data.url;
         const quill = quillRef.current.getEditor();
         const range = quill.getSelection();

@@ -247,7 +247,10 @@ const Courses = () => {
                                 Course
                               </th>
                               <th className="text-left text-xs font-medium text-gray-400 uppercase tracking-wider py-2">
-                                Image
+                                Instructor
+                              </th>
+                              <th className="text-left text-xs font-medium text-gray-400 uppercase tracking-wider py-2">
+                                Duration
                               </th>
                               <th className="text-left text-xs font-medium text-gray-400 uppercase tracking-wider py-2">
                                 Monthly Fee
@@ -274,21 +277,11 @@ const Courses = () => {
                                 <td className="py-2 text-gray-100">
                                   {course.course_Name}
                                 </td>
-                                <td className="py-2">
-                                  <img
-                                    src={
-                                      course.course_Image
-                                        ? `${
-                                            import.meta.env.VITE_API_URL
-                                          }/${course.course_Image.replace(
-                                            /\\/g,
-                                            "/"
-                                          )}`
-                                        : "https://via.placeholder.com/50"
-                                    }
-                                    alt="Course"
-                                    className="h-14 w-14 rounded"
-                                  />
+                                <td className="py-2 text-gray-100">
+                                  {course.Instructor?.name}
+                                </td>
+                                <td className="py-2 text-gray-100">
+                                  {course.Duration_Months}
                                 </td>
                                 <td className="py-2 text-gray-300">
                                   {course.Monthly_Fee || "N/A"}

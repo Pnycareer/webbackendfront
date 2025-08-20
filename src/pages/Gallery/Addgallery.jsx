@@ -1,5 +1,6 @@
 import { useState } from "react";
-import axios from "axios";
+import axiosInstance from "../../utils/axios";
+
 
 const GalleryForm = () => {
   const [categoryName, setCategoryName] = useState("");
@@ -16,41 +17,44 @@ const GalleryForm = () => {
     setPreviewImages(previews);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
 
-    const formData = new FormData();
-    formData.append("category_Name", categoryName);
-    formData.append("category_Description", categoryDescription);
 
-    galleryImages.forEach((image) => {
-      formData.append("galleryImages", image);
-    });
+const handleSubmit = async (e) => {
+  e.preventDefault();
 
-    try {
-      const response = await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/v1/gallery`,
-        formData,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
+  const formData = new FormData();
+  formData.append("category_Name", categoryName);
+  formData.append("category_Description", categoryDescription);
 
-      console.log("Gallery Created:", response.data);
-      alert("Gallery created successfully!");
+  galleryImages.forEach((image) => {
+    formData.append("galleryImages", image);
+  });
 
-      // Reset form
-      setCategoryName("");
-      setCategoryDescription("");
-      setGalleryImages([]);
-      setPreviewImages([]);
-    } catch (error) {
-      console.error("Error creating gallery:", error);
-      alert("Error creating gallery");
-    }
-  };
+  try {
+    const response = await axiosInstance.post(
+      "/api/v1/gallery",
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
+
+    console.log("Gallery Created:", response.data);
+    alert("Gallery created successfully!");
+
+    // Reset form
+    setCategoryName("");
+    setCategoryDescription("");
+    setGalleryImages([]);
+    setPreviewImages([]);
+  } catch (error) {
+    console.error("Error creating gallery:", error);
+    alert("Error creating gallery");
+  }
+};
+
 
   return (
     <div className="w-full mx-auto p-8  shadow-md rounded-md mt-10 overflow-y-auto min-h-screen">
