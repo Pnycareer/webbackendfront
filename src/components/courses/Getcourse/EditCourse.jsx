@@ -46,6 +46,7 @@ const EditCourse = () => {
   const [courseType, setCourseType] = useState("normal"); // normal | city
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [targetCategoryId, setTargetCategoryId] = useState("");
   const { updateCourse } = useCourses(); // 👈 inside component
 
   const quillRef = useRef();
@@ -64,7 +65,7 @@ const EditCourse = () => {
   const fetchCategories = async () => {
     try {
       const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/v1/categories`
+        `${import.meta.env.VITE_API_URL}/courses/getallcategories/getcategory`
       );
       console.log("Fetched categories:", response.data); // 🔍 Debug this
       setCategories(response.data);
@@ -119,6 +120,7 @@ const EditCourse = () => {
       id,
       data: courseWithoutFaqs,
       brochureFile,
+      targetCategoryId,
       setIsSubmitting: null,
     });
   };
@@ -138,6 +140,9 @@ const EditCourse = () => {
   if (loading) return <p>Loading...</p>;
   if (error) return <p className="text-red-500">{error}</p>;
 
+  console.log(targetCategoryId , 'target')
+  console.log(categories , 'categories')
+
   return (
     <div className="w-full overflow-auto">
       <div className="bg-gray-500 bg-opacity-50 backdrop-blur-md shadow-lg rounded-xl p-6 border my-10 border-gray-700 mx-auto w-full">
@@ -145,6 +150,24 @@ const EditCourse = () => {
           Edit Course
         </h2>
         <form onSubmit={handleSubmit} encType="multipart/form-data">
+          <div className="mb-4">
+            <label className="block text-gray-300">Move to Category</label>
+            <select
+              value={targetCategoryId}
+              onChange={(e) => setTargetCategoryId(e.target.value)}
+              className="w-full p-2 rounded bg-gray-700 text-white"
+            >
+              <option value="">(keep current category)</option>
+              {categories.map((cat) => (
+                <option key={cat._id} value={cat._id}>
+                  {cat.category_Name}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-gray-400 mt-1">
+              Pick a category to move this course into. Leave blank to stay put.
+            </p>
+          </div>
           {/* Course Name */}
           <div className="mb-4">
             <label className="block text-gray-300">Course Name</label>
@@ -251,7 +274,7 @@ const EditCourse = () => {
           {/* Course Description */}
           <div className="mb-4">
             <label className="block text-gray-300">Course Description</label>
-            
+
             <RichTextEditor
               value={course.Course_Description}
               onChange={(content) =>

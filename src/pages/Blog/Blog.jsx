@@ -211,7 +211,7 @@ const Blog = () => {
         metaTitle: "",
         urlSlug: "",
         metaDescription: "",
-        canonical: "",
+        // canonical: "",
         pageindex: "",
         insitemap: true,
         inviewweb: true,
@@ -424,7 +424,7 @@ const Blog = () => {
         </div>
 
         {/* Canonical URL */}
-        <div className="flex flex-col">
+        {/* <div className="flex flex-col">
           <label className="font-semibold">Canonical URL</label>
           <input
             type="text"
@@ -433,7 +433,7 @@ const Blog = () => {
             onChange={handleChange}
             className="border p-2 rounded text-black"
           />
-        </div>
+        </div> */}
         <div className="flex flex-col">
           <label className="font-semibold">Show Table of Contents?</label>
           <select

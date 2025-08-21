@@ -110,7 +110,13 @@ const useCourses = () => {
   };
 
   // Add inside useCourses.js
-  const updateCourse = async ({ id, data, brochureFile, setIsSubmitting }) => {
+  const updateCourse = async ({
+    id,
+    data,
+    targetCategoryId,
+    brochureFile,
+    setIsSubmitting,
+  }) => {
     setIsSubmitting?.(true);
 
     try {
@@ -136,6 +142,11 @@ const useCourses = () => {
           formData.append(key, value);
         }
       });
+
+      // 🚚 the only thing needed to move categories server-side
+      if (targetCategoryId) {
+        formData.append("targetCategoryId", targetCategoryId);
+      }
 
       if (brochureFile) {
         formData.append("Brochure", brochureFile);
