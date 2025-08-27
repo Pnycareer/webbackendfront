@@ -16,9 +16,7 @@ const Instructors = () => {
   useEffect(() => {
     const fetchInstructors = async () => {
       try {
-        const response = await axios.get(
-          `/api/instructors/get-instructor`
-        );
+        const response = await axios.get(`/api/instructors/get-instructor`);
         setUsers(response.data);
         setFilteredUsers(response.data);
       } catch (error) {
@@ -33,7 +31,6 @@ const Instructors = () => {
     const term = e.target.value.toLowerCase();
     setSearchTerm(term);
 
-    // Filter the users by both name and email, ensuring that they are not undefined
     const filtered = users.filter(
       (user) =>
         (user.name && user.name.toLowerCase().includes(term)) ||
@@ -43,25 +40,18 @@ const Instructors = () => {
   };
 
   const handleDelete = async (id) => {
-  const confirmDelete = window.confirm("Are you sure you want to delete this instructor?");
-  if (!confirmDelete) return;
+    const confirmDelete = window.confirm("Are you sure you want to delete this instructor?");
+    if (!confirmDelete) return;
 
-  try {
-    const response = await axios.delete(`/api/instructors/${id}`);
-    
-    // Update UI
-    setFilteredUsers(filteredUsers.filter((user) => user._id !== id));
-
-    // Show success toast with backend message
-    toast.success(response.data.message || "Instructor deleted successfully");
-  } catch (error) {
-    console.error("Failed to delete user", error);
-
-    // Show error toast with backend message if available
-    toast.error(error.response?.data?.message || "Failed to delete instructor");
-  }
-};
-
+    try {
+      const response = await axios.delete(`/api/instructors/${id}`);
+      setFilteredUsers((prev) => prev.filter((user) => user._id !== id));
+      toast.success(response.data.message || "Instructor deleted successfully");
+    } catch (error) {
+      console.error("Failed to delete user", error);
+      toast.error(error.response?.data?.message || "Failed to delete instructor");
+    }
+  };
 
   const handleEditClick = (userId) => {
     navigate(`/dashboard/editinstructors/${userId}`);
@@ -92,10 +82,7 @@ const Instructors = () => {
                   value={searchTerm}
                   onChange={handleSearch}
                 />
-                <Search
-                  className="absolute left-3 top-2.5 text-gray-400"
-                  size={18}
-                />
+                <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
               </div>
               <Link to="/dashboard/addinstructors">
                 <button className="bg-blue-600 hover:bg-blue-500 hidden sm:block text-white font-semibold py-2 px-4 rounded-lg transition-all duration-300">
@@ -118,8 +105,9 @@ const Instructors = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                     Name
                   </th>
+                  {/* renamed header */}
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                    View Web
+                    In&nbsp;View
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                     Actions
@@ -128,59 +116,71 @@ const Instructors = () => {
               </thead>
 
               <tbody className="divide-y divide-gray-700">
-                {filteredUsers.map((user, index) => (
-                  <motion.tr
-                    key={user._id}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-300">{index + 1}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="h-10 w-10 rounded-full bg-gradient-to-r from-purple-400 to-blue-500 flex items-center justify-center text-white font-semibold">
-                        <img
-                          src={
-                            user.photo
-                              ? `${
-                                  import.meta.env.VITE_API_URL
-                                }/${user.photo.replace(/\\/g, "/")}`
-                              : "path/to/default-image.jpg" // Use a fallback image here
-                          }
-                          alt="User profile"
-                          className="h-full w-full object-cover rounded-full"
+                {filteredUsers.map((user, index) => {
+                  // accept various possible keys; defaults to false
+                  const inView =
+                    user?.in_View === true ||
+                    user?.In_View === true ||
+                    user?.view_on_web === true ||
+                    user?.View_On_Web === true;
+
+                  return (
+                    <motion.tr
+                      key={user._id}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-300">{index + 1}</div>
+                      </td>
+
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="h-10 w-10 rounded-full bg-gradient-to-r from-purple-400 to-blue-500 flex items-center justify-center text-white font-semibold overflow-hidden">
+                          <img
+                            src={
+                              user.photo
+                                ? `${import.meta.env.VITE_API_URL}/${user.photo.replace(/\\/g, "/")}`
+                                : "/placeholder-user.jpg"
+                            }
+                            alt="User profile"
+                            className="h-full w-full object-cover"
+                          />
+                        </div>
+                      </td>
+
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-100">{user.name}</div>
+                      </td>
+
+                      {/* status dot cell */}
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span
+                          className={`inline-block h-3 w-3 rounded-full ${
+                            inView ? "bg-emerald-500 shadow-[0_0_0_3px_rgba(16,185,129,0.25)]" : "bg-red-500 shadow-[0_0_0_3px_rgba(239,68,68,0.25)]"
+                          }`}
+                          title={inView ? "Visible on website" : "Hidden from website"}
+                          aria-label={inView ? "Visible on website" : "Hidden from website"}
                         />
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-100">
-                        {user.name}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <Link to={`/users/${user._id}`}>
-                        <button className="text-blue-400 hover:text-blue-300">
-                          View Web
+                      </td>
+
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                        <button
+                          className="text-indigo-400 hover:text-indigo-300 mr-2"
+                          onClick={() => handleEditClick(user._id)}
+                        >
+                          Edit
                         </button>
-                      </Link>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                      <button
-                        className="text-indigo-400 hover:text-indigo-300 mr-2"
-                        onClick={() => handleEditClick(user._id)}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        className="text-red-400 hover:text-red-300"
-                        onClick={() => handleDelete(user._id)}
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </motion.tr>
-                ))}
+                        <button
+                          className="text-red-400 hover:text-red-300"
+                          onClick={() => handleDelete(user._id)}
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </motion.tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

@@ -1,507 +1,178 @@
+"use client";
+
 import React, { useState } from "react";
-import ReactQuill from "react-quill";
-import "react-quill/dist/quill.snow.css";
+import { useForm, Controller } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
-import RichTextEditor from "../../components/RichTextEditor/RichTextEditor";
-import axios from "../../utils/axios";
 import toast from "react-hot-toast";
+import axios from "@/utils/axios";
 
-const Blog = () => {
-  const [formData, setFormData] = useState({
-    blogName: "",
-    shortDescription: "",
-    urlSlug: "",
-    blogCategory: "",
-    blogDescription: "",
-    publishDate: new Date().toISOString().split("T")[0], // ✅ today's date
-    authorName: "",
-    authorBio: "",
-    tags: "",
-    metaTitle: "",
-    metaDescription: "",
-    pageindex: "",
-    insitemap: true,
-    canonical: "",
-    inviewweb: true,
-    showtoc: true, // ✅ Add this line
-  });
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Form } from "@/components/ui/form";
+import { Label } from "@/components/ui/label";
+import { Loader2 } from "lucide-react";
+
+import Field from "@/components/form/Field";
+import SelectField from "@/components/form/SelectField";
+import FileField from "@/components/form/FileField";
+import RichTextEditor from "@/components/RichTextEditor/RichTextEditor";
+
+const categories = [
+  { label: "Technology", value: "technology" },
+  { label: "Marketing", value: "marketing" },
+  { label: "Software", value: "software" },
+  { label: "Education", value: "education" },
+  { label: "Short Courses in Islamabad", value: "short-courses-in-islamabad" },
+  { label: "Short Courses in Faisalabad", value: "short-courses-in-faisalabad" },
+  { label: "IT Softwares", value: "it-softwares" },
+  { label: "SEO", value: "seo" },
+  { label: "Design", value: "design" },
+  { label: "Photography", value: "photography" },
+];
+
+export default function BlogForm() {
   const navigate = useNavigate();
+
   const [blogImage, setBlogImage] = useState(null);
-  const [authorProfileImage, setAuthorProfileImage] = useState(null); // ✅
-  const [loading, setLoading] = useState(false);
+  const [authorProfileImage, setAuthorProfileImage] = useState(null);
+  const [blogDescription, setBlogDescription] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const categories = [
-    { label: "Technology", value: "technology" },
-    { label: "Marketing", value: "marketing" },
-    { label: "Software", value: "software" },
-    { label: "Education", value: "education" },
-    {
-      label: "Short Courses in Islamabad",
-      value: "short-courses-in-islamabad",
+  const form = useForm({
+    defaultValues: {
+      blogName: "",
+      shortDescription: "",
+      urlSlug: "",
+      blogCategory: "",
+      publishDate: new Date().toISOString().split("T")[0],
+      authorName: "",
+      authorBio: "",
+      tags: "",
+      metaTitle: "",
+      metaDescription: "",
+      pageindex: "true",
+      insitemap: "true",
+      inviewweb: "true",
+      showtoc: "true",
     },
-    {
-      label: "Short Courses in Faisalabad",
-      value: "short-courses-in-faisalabad",
-    },
-    { label: "IT Softwares", value: "it-softwares" },
-    { label: "SEO", value: "seo" },
-    { label: "Design", value: "design" },
-    { label: "Photography", value: "photography" },
-  ];
+  });
 
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-  };
-
-  const handleBlogImageChange = (e) => {
-    setBlogImage(e.target.files[0]);
-  };
-
-  const handleAuthorImageChange = (e) => {
-    setAuthorProfileImage(e.target.files[0]);
-  };
-
-  // const handleSubmit = async (e) => {
-  //   e.preventDefault();
-  //   setLoading(true);
-
-  //   const data = new FormData();
-
-  //   // Append all form fields
-  //   Object.keys(formData).forEach((key) => {
-  //     const value = formData[key];
-  //     if (typeof value === "string") {
-  //       data.append(key, value.trim());
-  //     } else {
-  //       data.append(key, value);
-  //     }
-  //   });
-
-  //   if (blogImage) {
-  //     data.append("blogImage", blogImage);
-  //   }
-
-  //   if (authorProfileImage) {
-  //     data.append("authorProfileImage", authorProfileImage);
-  //   }
-
-  //   // Slug generation
-  //   const finalSlug = formData.urlSlug
-  //     .trim()
-  //     .toLowerCase()
-  //     .replace(/[^a-z0-9\s-]/g, "")
-  //     .replace(/\s+/g, "-")
-  //     .replace(/-+/g, "-");
-  //   data.append("url_slug", finalSlug);
-
-  //   try {
-  //     const res = await axios.post(
-  //       `${import.meta.env.VITE_API_URL}/api/blogs`,
-  //       data,
-  //       {
-  //         headers: {
-  //           "Content-Type": "multipart/form-data",
-  //         },
-  //       }
-  //     );
-
-  //     const message = res.data?.message || "Blog posted successfully!";
-  //     setLoading(false);
-  //     toast.success(message);
-  //     navigate("/dashboard/all-blogs");
-
-  //     // Reset form
-  //     setFormData({
-  //       blogName: "",
-  //       shortDescription: "",
-  //       blogCategory: "",
-  //       blogDescription: "",
-  //       publishDate: "",
-  //       authorName: "",
-  //       authorBio: "",
-  //       tags: "",
-  //       metaTitle: "",
-  //       urlSlug: "",
-  //       metaDescription: "",
-  //       canonical: "",
-  //     });
-  //     setBlogImage(null);
-  //     setAuthorProfileImage(null);
-  //   } catch (error) {
-  //     console.error(error);
-  //     const message =
-  //       error.response?.data?.message ||
-  //       "Something went wrong while posting the blog.";
-  //     setLoading(false);
-  //     toast.error(message);
-  //   }
-  // };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+  const onSubmit = async (formData) => {
+    if (!blogDescription) {
+      toast.error("Blog description is required");
+      return;
+    }
+    if (!blogImage) {
+      toast.error("Please upload a blog image");
+      return;
+    }
 
     const data = new FormData();
 
-    // Convert boolean-like string fields to actual booleans
-    const formattedFormData = {
-      ...formData,
-      insitemap: formData.insitemap === "true" || formData.insitemap === true,
-      inviewweb: formData.inviewweb === "true" || formData.inviewweb === true,
-      pageindex: formData.pageindex === "true" || formData.pageindex === true,
-      showtoc: formData.showtoc === "true" || formData.showtoc === true,
-    };
-
-    // Append all fields to FormData
-    Object.keys(formattedFormData).forEach((key) => {
-      const value = formattedFormData[key];
-      if (typeof value === "string") {
-        data.append(key, value.trim());
-      } else {
-        data.append(key, value);
-      }
-    });
-
-    if (blogImage) {
-      data.append("blogImage", blogImage);
-    }
-
-    if (authorProfileImage) {
-      data.append("authorProfileImage", authorProfileImage);
-    }
-
-    // Generate slug from urlSlug field
     const finalSlug = formData.urlSlug
       .trim()
       .toLowerCase()
       .replace(/[^a-z0-9\s-]/g, "")
       .replace(/\s+/g, "-")
       .replace(/-+/g, "-");
-    data.set("url_slug", finalSlug); // overwrite if already added
+
+    Object.entries({ ...formData, blogDescription, url_slug: finalSlug }).forEach(
+      ([key, value]) => {
+        data.append(key, value);
+      }
+    );
+
+    data.append("blogImage", blogImage);
+    if (authorProfileImage) data.append("authorProfileImage", authorProfileImage);
 
     try {
+      setIsSubmitting(true);
       const res = await axios.post(
         `${import.meta.env.VITE_API_URL}/api/blogs`,
         data,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        }
+        { headers: { "Content-Type": "multipart/form-data" } }
       );
 
-      const message = res.data?.message || "Blog posted successfully!";
-      setLoading(false);
-      toast.success(message);
+      toast.success(res.data?.message || "Blog posted!");
       navigate("/dashboard/all-blogs");
-
-      // Reset form after submission
-      setFormData({
-        blogName: "",
-        shortDescription: "",
-        blogCategory: "",
-        blogDescription: "",
-        publishDate: new Date().toISOString().split("T")[0],
-        authorName: "",
-        authorBio: "",
-        tags: "",
-        metaTitle: "",
-        urlSlug: "",
-        metaDescription: "",
-        // canonical: "",
-        pageindex: "",
-        insitemap: true,
-        inviewweb: true,
-        showtoc: true, // ✅ Reset to default true
-      });
-      setBlogImage(null);
-      setAuthorProfileImage(null);
-    } catch (error) {
-      console.error(error);
-      const message =
-        error.response?.data?.message ||
-        "Something went wrong while posting the blog.";
-      setLoading(false);
-      toast.error(message);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to post blog.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="mx-auto p-6 bg-gray-400">
-      <h2 className="text-3xl font-bold mb-6 text-center">Create a Blog</h2>
+    <div className="p-4">
+      <Card className="border border-white/10 bg-black/40 backdrop-blur-xl shadow-2xl max-w-5xl mx-auto">
+        <CardHeader>
+          <CardTitle className="text-3xl text-gray-100 text-center tracking-tight">
+            Post a Blog
+          </CardTitle>
+        </CardHeader>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-        {/* Blog Name */}
-        <div className="flex flex-col">
-          <label className="font-semibold">Blog Name</label>
-          <input
-            type="text"
-            name="blogName"
-            value={formData.blogName}
-            onChange={handleChange}
-            className="border p-2 rounded text-black"
-            required
-          />
-        </div>
+        <CardContent className="pt-2">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <Field control={form.control} name="blogName" label="Blog Name*" placeholder="Enter blog title" rules={{ required: true }} />
 
-        {/* Short Description */}
-        <div className="flex flex-col">
-          <label className="font-semibold">Short Description</label>
-          <textarea
-            name="shortDescription"
-            value={formData.shortDescription}
-            onChange={handleChange}
-            className="border p-2 rounded min-h-[52px] text-black"
-            required
-          />
-        </div>
+              <Field control={form.control} name="shortDescription" label="Short Description*" textarea placeholder="Short intro..." rules={{ required: true }} />
 
-        {/* Blog Category */}
-        <div className="flex flex-col">
-          <label className="font-semibold">Blog Category</label>
-          <select
-            name="blogCategory"
-            value={formData.blogCategory}
-            onChange={handleChange}
-            className="border p-2 rounded text-black"
-            required
-          >
-            <option value="">Select Category</option>
-            {categories.map((cat, idx) => (
-              <option key={idx} value={cat.value}>
-                {cat.label}
-              </option>
-            ))}
-          </select>
-        </div>
+              <SelectField control={form.control} name="blogCategory" label="Blog Category*" rules={{ required: true }} items={categories} />
 
-        {/* URL Slug */}
-        <div className="flex flex-col">
-          <label className="font-semibold">URL Slug</label>
-          <input
-            type="text"
-            name="urlSlug"
-            value={formData.urlSlug}
-            onChange={handleChange}
-            className="border p-2 rounded text-black"
-            required
-          />
-        </div>
+              <Field control={form.control} name="urlSlug" label="URL Slug*" placeholder="url-friendly-slug" rules={{ required: true }} />
 
-        {/* Blog Description */}
-        <div className="flex flex-col">
-          <label className="font-semibold mb-2">Blog Description</label>
-          <RichTextEditor
-            value={formData.blogDescription}
-            onChange={(content) =>
-              setFormData({ ...formData, blogDescription: content })
-            }
-            height="300px"
-          />
-        </div>
+              <Field control={form.control} name="publishDate" label="Publish Date" type="date" />
 
-        {/* Publish Date */}
-        <div className="flex flex-col">
-          <label className="font-semibold">Publish Date</label>
-          <input
-            type="date"
-            name="publishDate"
-            value={formData.publishDate}
-            onChange={handleChange}
-            className="border p-2 rounded text-black"
-          />
-        </div>
+              <Field control={form.control} name="authorName" label="Author Name*" placeholder="Author full name" rules={{ required: true }} />
 
-        {/* Author Details */}
-        <div className="flex flex-col gap-2">
-          <label className="font-semibold">Author Information</label>
+              <Field control={form.control} name="authorBio" label="Author Bio" textarea placeholder="Author short bio" />
 
-          <input
-            type="text"
-            name="authorName"
-            placeholder="Author Name"
-            value={formData.authorName}
-            onChange={handleChange}
-            className="border p-2 rounded text-black"
-            required
-          />
+              <FileField label="Author Profile Image" accept="image/*" onChange={(file) => setAuthorProfileImage(file)} />
 
-          <textarea
-            name="authorBio"
-            placeholder="Author Bio"
-            value={formData.authorBio}
-            onChange={handleChange}
-            className="border p-2 rounded min-h-[100px] text-black"
-          />
+              <Field control={form.control} name="tags" label="Tags" placeholder="comma,separated,tags" />
 
-          {/* Upload Author Profile Image */}
-          <input
-            type="file"
-            name="authorProfileImage"
-            onChange={handleAuthorImageChange}
-            className="border p-2 rounded text-white"
-          />
-        </div>
+              <Field control={form.control} name="metaTitle" label="Meta Title*" placeholder="SEO title" rules={{ required: true }} />
 
-        {/* Tags */}
-        <div className="flex flex-col">
-          <label className="font-semibold">Tags (comma separated)</label>
-          <input
-            type="text"
-            name="tags"
-            value={formData.tags}
-            onChange={handleChange}
-            className="border p-2 rounded text-black"
-          />
-        </div>
+              <Field control={form.control} name="metaDescription" label="Meta Description*" textarea placeholder="SEO description" rules={{ required: true }} />
 
-        {/* Meta Title */}
-        <div className="flex flex-col">
-          <label className="font-semibold">Meta Title</label>
-          <input
-            type="text"
-            name="metaTitle"
-            value={formData.metaTitle}
-            onChange={handleChange}
-            className="border p-2 rounded text-black"
-            required
-          />
-        </div>
+              <FileField label="Blog Image*" accept="image/*" required onChange={(file) => setBlogImage(file)} />
 
-        {/* Meta Description */}
-        <div className="flex flex-col">
-          <label className="font-semibold">Meta Description</label>
-          <textarea
-            name="metaDescription"
-            value={formData.metaDescription}
-            onChange={handleChange}
-            className="border p-2 rounded min-h-[80px] text-black"
-            required
-          />
-        </div>
+              <SelectField control={form.control} name="pageindex" label="Page Index?" items={[{ value: "true", label: "Yes" }, { value: "false", label: "No" }]} />
 
-        {/* Blog Image Upload */}
-        <div className="flex flex-col">
-          <label className="font-semibold">Blog Image</label>
-          <input
-            type="file"
-            name="blogImage"
-            onChange={handleBlogImageChange}
-            className="border p-2 rounded text-white"
-            required
-          />
-        </div>
+              <SelectField control={form.control} name="insitemap" label="Include in Sitemap?" items={[{ value: "true", label: "Yes" }, { value: "false", label: "No" }]} />
 
-        {/* Page Index */}
-        <div className="flex flex-col">
-          <label className="font-semibold">Page Index</label>
-          <select
-            name="pageindex"
-            value={formData.pageindex}
-            onChange={handleChange}
-            className="border p-2 rounded text-black"
-          >
-            <option value="true">Yes</option>
-            <option value="false">No</option>
-          </select>
-        </div>
+              <SelectField control={form.control} name="showtoc" label="Show Table of Contents?" items={[{ value: "true", label: "Yes" }, { value: "false", label: "No" }]} />
 
-        {/* In Sitemap */}
-        <div className="flex flex-col">
-          <label className="font-semibold">Include in Sitemap?</label>
-          <select
-            name="insitemap"
-            value={formData.insitemap}
-            onChange={handleChange}
-            className="border p-2 rounded text-black"
-          >
-            <option value="true">Yes</option>
-            <option value="false">No</option>
-          </select>
-        </div>
+              <SelectField control={form.control} name="inviewweb" label="Show on Website?" items={[{ value: "true", label: "Yes" }, { value: "false", label: "No" }]} />
 
-        {/* Canonical URL */}
-        {/* <div className="flex flex-col">
-          <label className="font-semibold">Canonical URL</label>
-          <input
-            type="text"
-            name="canonical"
-            value={formData.canonical}
-            onChange={handleChange}
-            className="border p-2 rounded text-black"
-          />
-        </div> */}
-        <div className="flex flex-col">
-          <label className="font-semibold">Show Table of Contents?</label>
-          <select
-            name="showtoc"
-            value={formData.showtoc}
-            onChange={handleChange}
-            className="border p-2 rounded text-black"
-          >
-            <option value="true">Yes</option>
-            <option value="false">No</option>
-          </select>
-        </div>
+              <div className="space-y-2">
+                <Label className="text-gray-200">Blog Description*</Label>
+                <div className="rounded-md overflow-hidden bg-white/10 text-black">
+                  <RichTextEditor value={blogDescription} onChange={setBlogDescription} height="300px" />
+                </div>
+                {form.formState.isSubmitted && !blogDescription && (
+                  <p className="text-sm text-red-500">Blog Description is required</p>
+                )}
+              </div>
 
-        {/* In View Web */}
-        <div className="flex flex-col">
-          <label className="font-semibold">Show on Website?</label>
-          <select
-            name="inviewweb"
-            value={formData.inviewweb}
-            onChange={handleChange}
-            className="border p-2 rounded text-black"
-          >
-            <option value="true">Yes</option>
-            <option value="false">No</option>
-          </select>
-        </div>
-
-        {/* Submit Button */}
-        <button
-          type="submit"
-          disabled={loading}
-          className={`py-2 rounded w-full transition-all flex items-center justify-center ${
-            loading
-              ? "bg-blue-400 cursor-not-allowed"
-              : "bg-blue-600 hover:bg-blue-700"
-          } text-white`}
-        >
-          {loading ? (
-            <>
-              <svg
-                className="animate-spin h-5 w-5 mr-2 text-white"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                ></circle>
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8v8H4z"
-                ></path>
-              </svg>
-              Posting...
-            </>
-          ) : (
-            "Post Blog"
-          )}
-        </button>
-      </form>
+              <div className="flex justify-center">
+                <Button type="submit" className="gap-2" disabled={isSubmitting}>
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    "Post Blog"
+                  )}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
     </div>
   );
-};
-
-export default Blog;
+}

@@ -12,6 +12,7 @@ import { GrGallery } from "react-icons/gr";
 import { SiMetrodelaciudaddemexico } from "react-icons/si";
 import Header from "./Header";
 import useAuth from "../../context/useAuth";
+import SiteBackground from "../SiteBackground/SiteBackground";
 
 const ALL_SIDEBAR_ITEMS = [
   {
@@ -290,7 +291,8 @@ const Sidebar = () => {
       </motion.div>
 
       {/* RIGHT CONTENT */}
-      <div className="flex-1 overflow-y-auto bg-gray-300">
+      <div className="flex-1 overflow-y-auto">
+         <SiteBackground/>
         <Header />
         <Outlet />
       </div>

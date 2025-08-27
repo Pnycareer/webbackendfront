@@ -14,6 +14,7 @@ const Courses = () => {
   const [loading, setLoading] = useState(true);
   const [editingCategoryId, setEditingCategoryId] = useState(null);
   const [editedDescription, setEditedDescription] = useState("");
+  const [editedtitle, setEditedTitle] = useState("");
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -83,6 +84,7 @@ const Courses = () => {
   const handleSaveCategoryDescription = async (categoryId) => {
     try {
       await axios.patch(`/courses/category-update/${categoryId}`, {
+        category_Name: editedtitle,
         category_Description: editedDescription,
       });
       toast.success("Category description updated!");
@@ -190,6 +192,13 @@ const Courses = () => {
                           setEditedDescription(
                             category.category_Description || ""
                           );
+                          setEditedTitle(category.category_Name || "");
+                          if (!openCategories.includes(category._id)) {
+                            setOpenCategories((prev) => [
+                              ...prev,
+                              category._id,
+                            ]);
+                          }
                         }}
                         className="text-blue-400 hover:text-blue-300 text-sm"
                       >
@@ -211,15 +220,22 @@ const Courses = () => {
                 {openCategories.includes(category._id) && (
                   <div className="px-6 pb-2">
                     {editingCategoryId === category._id ? (
-                      <textarea
-                        rows={2}
-                        className="w-full p-2 rounded bg-gray-800 text-white border border-gray-600 focus:outline-none focus:ring mt-2"
-                        value={editedDescription}
-                        onChange={(e) =>
-                          setEditedDescription(e.target.value)
-                        }
-                        placeholder="Edit category description..."
-                      />
+                      <>
+                        <input
+                          rows={2}
+                          className="w-full p-2 rounded bg-gray-800 text-white border border-gray-600 focus:outline-none focus:ring mt-2"
+                          value={editedtitle}
+                          onChange={(e) => setEditedTitle(e.target.value)}
+                          placeholder="Edit category description..."
+                        />
+                        <textarea
+                          rows={2}
+                          className="w-full p-2 rounded bg-gray-800 text-white border border-gray-600 focus:outline-none focus:ring mt-2"
+                          value={editedDescription}
+                          onChange={(e) => setEditedDescription(e.target.value)}
+                          placeholder="Edit category description..."
+                        />
+                      </>
                     ) : (
                       <p className="text-gray-400 italic mt-2">
                         {category.category_Description ||

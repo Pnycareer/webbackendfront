@@ -81,7 +81,7 @@ const AddModel = () => {
       setMessage(response.message || "✅ Module added successfully!");
       setSelectedCourseId("");
       setLectures([{ lectureNumber: 1, title: "", content: "", topics: "" }]);
-      navigate("/coursemodel");
+      navigate("/dashboard/coursemodel");
     } catch (err) {
       const errorMsg =
         err.response?.data?.message ||
@@ -184,12 +184,12 @@ const AddModel = () => {
                   />
                   <input
                     type="text"
-                    placeholder="Content"
+                    placeholder="Content (optional)"
                     value={lecture.content}
                     onChange={(e) =>
                       handleLectureChange(index, "content", e.target.value)
                     }
-                    required
+                    
                     className="px-4 py-2 border border-gray-300 rounded-md text-black"
                   />
                   <div className="md:col-span-2">

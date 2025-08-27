@@ -4,6 +4,7 @@ import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
 import toast from "react-hot-toast";
 import axios from "../../utils/axios";
+import RichTextEditor from "@/components/RichTextEditor/RichTextEditor";
 
 const categories = [
   { label: "Technology", value: "technology" },
@@ -261,8 +262,7 @@ const EditBlog = () => {
     }
   };
 
-
-  console.log(formData, 'showtoc')
+  console.log(formData, "showtoc");
 
   return (
     <div className="w-full mx-auto p-6 overflow-y-auto min-h-screen">
@@ -327,13 +327,13 @@ const EditBlog = () => {
         </div>
 
         {/* Blog Description */}
-        <div className="flex flex-col">
+        <div className="flex flex-col gap-2">
           <label className="font-semibold">Blog Description</label>
-          <ReactQuill
-            theme="snow"
+          <RichTextEditor
+            className="bg-white"
             value={blogDescription}
             onChange={setBlogDescription}
-            className="bg-white text-black rounded"
+            height={300}
           />
         </div>
 

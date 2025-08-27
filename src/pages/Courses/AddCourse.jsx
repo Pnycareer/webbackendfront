@@ -1,544 +1,469 @@
-import { useForm } from "react-hook-form";
-import { cityOptions, shortcourseOptions } from "../../components/Data/Data";
-import { useState } from "react";
-import RichTextEditor from "../../components/RichTextEditor/RichTextEditor";
-import useCategories from "../../hooks/useCategories";
-import useInstructors from "../../hooks/useInstructors";
-import useCourses from "../../hooks/useCourses";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { courseSchema } from "../../components/schemas/courseSchema";
+"use client";
 
-const AddCourse = () => {
+import { useState , useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { useSnackbar } from "notistack";
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Form } from "@/components/ui/form"; // ✅ add this
+
+import Field from "@/components/form/Field.jsx";
+import SelectField from "@/components/form/SelectField.jsx";
+import FileField from "@/components/form/FileField.jsx";
+import { Label } from "@/components/ui/label";
+import { Loader2 } from "lucide-react";
+import useCourses from "@/hooks/useCourses";
+import useCategories from "@/hooks/useCategories";
+import useInstructors from "@/hooks/useInstructors";
+import { cityOptions, shortcourseOptions } from "@/components/Data/Data";
+import RichTextEditor from "@/components/RichTextEditor/RichTextEditor";
+
+
+export default function AddCourse() {
+  const { enqueueSnackbar } = useSnackbar();
   const { categories } = useCategories();
   const { instructors } = useInstructors();
   const { addCourse } = useCourses();
-  const [selectedCourseImage, setSelectedCourseImage] = useState(null); // State for course image file
-  const [selectedBrochure, setSelectedBrochure] = useState(null); // State for brochure file
-  const [courseType, setCourseType] = useState("main"); // default is "main"
-  const [courseDescription, setCourseDescription] = useState(""); // State for course description
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [brochureError, setBrochureError] = useState(""); // Add this near your state declarations
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm({
-    resolver: zodResolver(courseSchema),
+  const [courseType, setCourseType] = useState("main");
+  const [courseDescription, setCourseDescription] = useState("");
+  const [selectedCourseImage, setSelectedCourseImage] = useState(null);
+  const [selectedBrochure, setSelectedBrochure] = useState(null);
+  const [brochureError, setBrochureError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const form = useForm({
+    defaultValues: {
+      bootcamp: "false",
+      course_Name: "",
+      url_Slug: "",
+      video_Id: "",
+      course_Category: "",
+      category_Description: "",
+      Skill_Level: "",
+      instructor: "",
+      Monthly_Fee: undefined,
+      Admission_Fee: undefined,
+      Duration_Months: undefined,
+      Duration_Day: undefined,
+      Status: "Active",
+      showtoc: "no",
+      View_On_Web: "yes",
+      In_Sitemap: "yes",
+      priority: undefined,
+      Page_Index: "yes",
+      Short_Description: "",
+      Meta_Title: "",
+      Meta_Description: "",
+    },
+    mode: "onSubmit",
   });
 
   const onSubmit = async (data) => {
-    await addCourse({
+    if (!courseDescription) {
+      enqueueSnackbar("Course Description is required", { variant: "error" });
+      return;
+    }
+
+    if (courseType === "main" && !selectedBrochure) {
+      enqueueSnackbar("Please attach the brochure PDF", { variant: "error" });
+      return;
+    }
+
+    if (!selectedCourseImage) {
+      enqueueSnackbar("Please attach the course image", { variant: "error" });
+      return;
+    }
+
+    // 🛠️ Strip out unused fields for city/short course
+    if (courseType !== "main") {
+      delete data.Monthly_Fee;
+      delete data.Admission_Fee;
+      delete data.Duration_Months;
+      delete data.Duration_Day;
+    }
+
+    const ok = await addCourse({
       data,
       courseDescription,
       courseImage: selectedCourseImage,
       brochure: selectedBrochure,
       setIsSubmitting,
     });
+
+    if (ok) {
+      form.reset();
+      setCourseDescription("");
+      setSelectedCourseImage(null);
+      setSelectedBrochure(null);
+    }
   };
 
+  const categoryItems =
+    courseType === "main"
+      ? (categories || []).map((c) => ({
+          value: c.url_Slug,
+          label: c.Category_Name,
+        }))
+      : courseType === "city"
+      ? (cityOptions || []).map((city) => ({
+          value: city,
+          label: city.charAt(0).toUpperCase() + city.slice(1),
+        }))
+      : (shortcourseOptions || []).map((opt) => ({
+          value: opt,
+          label: opt
+            .replace(/-/g, " ")
+            .replace(/\b\w/g, (c) => c.toUpperCase()),
+        }));
+
+  const instructorItems = (instructors || []).map((i) => ({
+    value: i._id,
+    label: i.name,
+  }));
+
+
+  
+
   return (
-    <div className="w-full overflow-y-auto">
-      <div className="p-6 bg-gray-800 shadow-md m-full mx-auto">
-        <h2 className="text-3xl font-semibold text-gray-100 mb-6 text-center">
-          Add Course
-        </h2>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="mb-4">
-            <label className="block text-gray-400 mb-2">
-              Select Course Type*
-            </label>
-            <select
-              value={courseType}
-              onChange={(e) => setCourseType(e.target.value)}
-              className="w-full px-4 py-2 bg-gray-700 text-white rounded-md"
-              required
-            >
-              <option value="main">Main Course</option>
-              <option value="city">City Course</option>
-              <option value="short">Short Course</option>
-            </select>
-          </div>
+    <>
+      <div className="p-4">
+       
 
-          {/* Bootcamp Field */}
-          <div className="mb-4">
-            <label className="block text-gray-400 mb-2">Is Bootcamp?*</label>
-            <select
-              {...register("bootcamp", { required: true })}
-              className="w-full px-4 py-2 bg-gray-700 text-white rounded-md"
-            >
-              <option value="false">No</option>
-              <option value="true">Yes</option>
-            </select>
-          </div>
+        <Card className="border border-white/10 bg-black/40 backdrop-blur-xl shadow-2xl max-w-5xl mx-auto">
+          <CardHeader>
+            <CardTitle className="text-3xl text-gray-100 text-center tracking-tight">
+              Add Course
+            </CardTitle>
+          </CardHeader>
 
-          {/* Course Name */}
-
-          <div className="mb-4">
-            <label className="block text-gray-400 mb-2">Course Name*</label>
-            <input
-              type="text"
-              {...register("course_Name", { required: true })}
-              className="w-full px-4 py-2 bg-gray-700 text-white rounded-md"
-              placeholder="Enter course name"
-            />
-            {errors.course_Name && (
-              <span className="text-red-500">{errors.course_Name.message}</span>
-            )}
-          </div>
-          {/* URL Slug */}
-          <div className="mb-4">
-            <label className="block text-gray-400 mb-2">URL Slug*</label>
-            <input
-              type="text"
-              {...register("url_Slug", { required: true })}
-              className="w-full px-4 py-2 bg-gray-700 text-white rounded-md"
-              placeholder="Enter URL slug"
-            />
-            {errors.url_Slug && (
-              <span className="text-red-500">{errors.url_Slug.message}</span>
-            )}
-          </div>
-
-          {courseType === "main" && (
-            <>
-              {/* Video ID */}
-              <div className="mb-4">
-                <label className="block text-gray-400 mb-2">Video ID*</label>
-                <input
-                  type="text"
-                  {...register("video_Id", { required: true })}
-                  className="w-full px-4 py-2 bg-gray-700 text-white rounded-md"
-                  placeholder="Enter Video ID"
-                />
-                {errors.videoID && (
-                  <span className="text-red-500">Video ID is required</span>
-                )}
-              </div>
-            </>
-          )}
-
-          <div className="mb-4">
-            <label className="block text-gray-400 mb-2">Course Category*</label>
-            <select
-              {...register("course_Category", { required: true })}
-              className="w-full px-4 py-2 bg-gray-700 text-white rounded-md"
-              defaultValue=""
-            >
-              <option value="" disabled>
-                Select Category
-              </option>
-
-              {courseType === "main" &&
-                categories.map((cat) => (
-                  <option key={cat._id} value={cat.url_Slug}>
-                    {cat.Category_Name}
-                  </option>
-                ))}
-
-              {courseType === "city" &&
-                cityOptions.map((city) => (
-                  <option key={city} value={city}>
-                    {city.charAt(0).toUpperCase() + city.slice(1)}
-                  </option>
-                ))}
-
-              {courseType === "short" &&
-                shortcourseOptions.map((city) => (
-                  <option key={city} value={city}>
-                    {`${city
-                      .replace(/-/g, " ")
-                      .replace(/\b\w/g, (c) => c.toUpperCase())}`}
-                  </option>
-                ))}
-            </select>
-            {errors.course_Category && (
-              <span className="text-red-500">Course Category is required</span>
-            )}
-          </div>
-
-          <div className="mb-4">
-            <label className="block text-gray-400 mb-2">
-              Category Description (Optional)
-            </label>
-            <input
-              type="text"
-              {...register("category_Description")}
-              className="w-full px-4 py-2 bg-gray-700 text-white rounded-md"
-              placeholder="Enter description for the category"
-            />
-          </div>
-
-          {courseType === "main" && (
-            <>
-              {/* Skill Level */}
-              <div className="mb-4">
-                <label className="block text-gray-400 mb-2">Skill Level*</label>
-                <select
-                  {...register("Skill_Level", { required: true })}
-                  className="w-full px-4 py-2 bg-gray-700 text-white rounded-md"
-                  defaultValue="" // important for validation
-                >
-                  <option value="" disabled>
-                    Select Skill
-                  </option>
-                  <option value="Beginner">Beginner</option>
-                  <option value="Intermediate">Intermediate</option>
-                  <option value="Advanced">Advanced</option>
-                  <option value="all">Appropriate for All</option>
-                </select>
-                {errors.Skill_Level && (
-                  <span className="text-red-500">Skill Level is required</span>
-                )}
-              </div>
-            </>
-          )}
-
-          <div className="mb-4">
-            <label className="block text-gray-400 mb-2">Instructor*</label>
-            <select
-              {...register("instructor", { required: true })}
-              className="w-full px-4 py-2 bg-gray-700 text-white rounded-md"
-              defaultValue="" // <- important for validation to work with the placeholder
-            >
-              <option value="" disabled>
-                Select Instructor
-              </option>
-              {instructors.map((instructor) => (
-                <option key={instructor._id} value={instructor._id}>
-                  {instructor.name}
-                </option>
-              ))}
-            </select>
-            {errors.instructor && (
-              <span className="text-red-500">Instructor is required</span>
-            )}
-          </div>
-
-          {courseType === "main" && (
-            <>
-              {/* Monthly Fee */}
-              <div className="mb-4">
-                <label className="block text-gray-400 mb-2">Monthly Fee*</label>
-                <input
-                  type="number"
-                  {...register("Monthly_Fee", { required: true })}
-                  className="w-full px-4 py-2 bg-gray-700 text-white rounded-md"
-                  placeholder="Enter monthly fee"
-                />
-                {errors.monthlyFee && (
-                  <span className="text-red-500">Monthly Fee is required</span>
-                )}
-              </div>
-
-              {/* Admission Fee */}
-              <div className="mb-4">
-                <label className="block text-gray-400 mb-2">
-                  Admission Fee*
-                </label>
-                <input
-                  type="number"
-                  {...register("Admission_Fee", { required: true })}
-                  className="w-full px-4 py-2 bg-gray-700 text-white rounded-md"
-                  placeholder="Enter admission fee"
-                />
-                {errors.admissionFee && (
-                  <span className="text-red-500">
-                    Admission Fee is required
-                  </span>
-                )}
-              </div>
-
-              {/* Duration Months */}
-              <div className="mb-4">
-                <label className="block text-gray-400 mb-2">
-                  Duration Months*
-                </label>
-                <input
-                  type="number"
-                  {...register("Duration_Months", { required: true })}
-                  className="w-full px-4 py-2 bg-gray-700 text-white rounded-md"
-                  placeholder="Enter duration in months"
-                />
-                {errors.durationMonths && (
-                  <span className="text-red-500">
-                    Duration in Months is required
-                  </span>
-                )}
-              </div>
-
-              {/* Duration Days */}
-              <div className="mb-4">
-                <label className="block text-gray-400 mb-2">
-                  Duration Days*
-                </label>
-                <input
-                  type="number"
-                  {...register("Duration_Day", { required: true })}
-                  className="w-full px-4 py-2 bg-gray-700 text-white rounded-md"
-                  placeholder="Enter duration in days"
-                />
-                {errors.durationDays && (
-                  <span className="text-red-500">
-                    Duration in Days is required
-                  </span>
-                )}
-              </div>
-
-              {/* Brochure */}
-              <div className="mb-4">
-                <label className="block text-gray-400 mb-2">
-                  Brochure (PDF Only)*
-                </label>
-                <input
-                  type="file"
-                  {...register("Brochure", { required: true })}
-                  className="w-full px-4 py-2 bg-gray-700 text-white rounded-md"
-                  accept=".pdf"
-                  onChange={(e) => {
-                    const file = e.target.files[0];
-                    if (file && file.type !== "application/pdf") {
-                      setBrochureError("Only PDF files are allowed");
-                      setSelectedBrochure(null);
-                      e.target.value = ""; // clear file input
-                    } else {
-                      setBrochureError("");
-                      setSelectedBrochure(file);
-                    }
-                  }}
-                />
-                {(errors.Brochure || brochureError) && (
-                  <span className="text-red-500">
-                    {brochureError || "Brochure is required"}
-                  </span>
-                )}
-              </div>
-            </>
-          )}
-
-          {/* Status */}
-          <div className="mb-4">
-            <label className="block text-gray-400 mb-2">Status*</label>
-            <select
-              {...register("Status", { required: true })}
-              className="w-full px-4 py-2 bg-gray-700 text-white rounded-md"
-            >
-              <option value="Active">Active</option>
-              <option value="Inactive">Inactive</option>
-            </select>
-            {errors.Status && (
-              <span className="text-red-500">Status is required</span>
-            )}
-          </div>
-
-          {/* Showtoc */}
-          <div className="mb-4">
-            <label className="block text-gray-400 mb-2">
-              Show table of content? *
-            </label>
-            <select
-              {...register("showtoc", { required: true })}
-              className="w-full px-4 py-2 bg-gray-700 text-white rounded-md"
-            >
-              <option value="no">No</option>
-              <option value="yes">Yes</option>
-            </select>
-            {errors.showtoc && (
-              <span className="text-red-500">Selection is required</span>
-            )}
-          </div>
-
-          <div className="mb-4">
-            <label className="block text-gray-400 mb-2">
-              Is View on Web? *
-            </label>
-            <select
-              {...register("View_On_Web", { required: true })}
-              className="w-full px-4 py-2 bg-gray-700 text-white rounded-md"
-            >
-              <option value="yes">Yes</option>
-              <option value="no">No</option>
-            </select>
-            {errors.isViewOnWeb && (
-              <span className="text-red-500">Selection is required</span>
-            )}
-          </div>
-
-          {/* In Sitemap */}
-          <div className="mb-4">
-            <label className="block text-gray-400 mb-2">In Sitemap? *</label>
-            <select
-              {...register("In_Sitemap", { required: true })}
-              className="w-full px-4 py-2 bg-gray-700 text-white rounded-md"
-            >
-              <option value="yes">Yes</option>
-              <option value="no">No</option>
-            </select>
-            {errors.inSitemap && (
-              <span className="text-red-500">Selection is required</span>
-            )}
-          </div>
-
-          <div className="mb-4">
-            <label className="block text-gray-400 mb-2">Priority</label>
-            <input
-              type="number"
-              step="0.1" // Allow decimals
-              min="0.0"
-              max="0.9"
-              {...register("priority", { required: false })}
-              className="w-full px-4 py-2 bg-gray-700 text-white rounded-md"
-              placeholder="Enter priority"
-            />
-            {errors.durationDays && (
-              <span className="text-red-500">Duration in Days is required</span>
-            )}
-          </div>
-
-          {/* Page Index */}
-          <div className="mb-4">
-            <label className="block text-gray-400 mb-2">Page Index? *</label>
-            <select
-              {...register("Page_Index", { required: true })}
-              className="w-full px-4 py-2 bg-gray-700 text-white rounded-md"
-            >
-              <option value="yes">Yes</option>
-              <option value="no">No</option>
-            </select>
-            {errors.pageIndex && (
-              <span className="text-red-500">Selection is required</span>
-            )}
-          </div>
-          {/* Custom Canonical URL */}
-          {/* <div className="mb-4">
-            <label className="block text-gray-400 mb-2">
-              Custom Canonical URL
-            </label>
-            <input
-              type="text"
-              {...register("Custom_Canonical_Url")}
-              className="w-full px-4 py-2 bg-gray-700 text-white rounded-md"
-              placeholder="Enter custom canonical URL"
-            />
-          </div> */}
-
-          {/* Course Image */}
-          <div className="mb-4">
-            <label className="block text-gray-400 mb-2">Course Image*</label>
-            <input
-              type="file"
-              {...register("course_Image", { required: true })}
-              className="w-full px-4 py-2 bg-gray-700 text-white rounded-md"
-              accept="image/*"
-              placeholder="jpg,png,jpeg, gif size : 5mb"
-              onChange={(e) => setSelectedCourseImage(e.target.files[0])}
-            />
-            {errors.courseImage && (
-              <span className="text-red-500">Course Image is required</span>
-            )}
-          </div>
-
-          {/* Short Description */}
-          <div className="mb-4">
-            <label className="block text-gray-400 mb-2">
-              Short Description*
-            </label>
-            <textarea
-              {...register("Short_Description", { required: true })}
-              className="w-full px-4 py-2 bg-gray-700 text-white rounded-md"
-              placeholder="Enter short description"
-            />
-            {errors.shortDescription && (
-              <span className="text-red-500">
-                Short Description is required
-              </span>
-            )}
-          </div>
-          {/* Course Description (CKEditor) */}
-          <div className="mb-4">
-            <label className="block text-gray-300 mb-2">
-              Course Description*
-            </label>
-            <RichTextEditor
-              value={courseDescription}
-              onChange={setCourseDescription}
-            />
-
-            {errors.courseDescription && (
-              <span className="text-red-500">
-                Course Description is required
-              </span>
-            )}
-          </div>
-
-          {/* Meta Title */}
-          <div className="mb-4">
-            <label className="block text-gray-400 mb-2">Meta Title*</label>
-            <input
-              type="text"
-              {...register("Meta_Title", { required: true })}
-              className="w-full px-4 py-2 bg-gray-700 text-white rounded-md"
-              placeholder="Enter meta title"
-            />
-            {errors.metaTitle && (
-              <span className="text-red-500">Meta Title is required</span>
-            )}
-          </div>
-          {/* Meta Description */}
-          <div className="mb-4">
-            <label className="block text-gray-400 mb-2">
-              Meta Description*
-            </label>
-            <textarea
-              {...register("Meta_Description", { required: true })}
-              className="w-full px-4 py-2 bg-gray-700 text-white rounded-md"
-              placeholder="Enter meta description"
-            />
-            {errors.metaDescription && (
-              <span className="text-red-500">Meta Description is required</span>
-            )}
-          </div>
-
-          {/* Submit Button */}
-          <div className="flex justify-center">
-            <button
-              type="submit"
-              className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none flex items-center justify-center gap-2 disabled:opacity-50"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <>
-                  <svg
-                    className="animate-spin h-5 w-5 text-white"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
+          <CardContent className="pt-2">
+            {/* Course type toggle */}
+            <div className="space-y-2 mb-6">
+              <Label className="text-gray-200">Select Course Type*</Label>
+              <div className="grid grid-cols-3 gap-2">
+                {["main", "city", "short"].map((v) => (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() => setCourseType(v)}
+                    className={[
+                      "rounded-md px-3 py-2 text-sm font-medium transition border",
+                      courseType === v
+                        ? "bg-white/30 text-white border-white/20"
+                        : "bg-white/[0.04] text-gray-300 hover:bg-white/[0.06] border-white/10",
+                    ].join(" ")}
                   >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8v8z"
-                    />
-                  </svg>
-                  <span>Submitting...</span>
-                </>
-              ) : (
-                "Add Course"
-              )}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-};
+                    {v === "main"
+                      ? "Main Course"
+                      : v === "city"
+                      ? "City Course"
+                      : "Short Course"}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-export default AddCourse;
+            {/* ✅ wrap your form with shadcn's <Form> to provide RHF context */}
+            <Form {...form}>
+              <form
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="space-y-6"
+              >
+                <SelectField
+                  control={form.control}
+                  name="bootcamp"
+                  label="Is Bootcamp?*"
+                  rules={{ required: "Required" }}
+                  items={[
+                    { value: "false", label: "No" },
+                    { value: "true", label: "Yes" },
+                  ]}
+                />
+
+                <Field
+                  control={form.control}
+                  name="course_Name"
+                  label="Course Name*"
+                  placeholder="Enter course name"
+                  rules={{ required: "Course Name is required" }}
+                />
+
+                <Field
+                  control={form.control}
+                  name="url_Slug"
+                  label="URL Slug*"
+                  placeholder="enter-course-slug"
+                  rules={{ required: "URL Slug is required" }}
+                />
+
+                {courseType === "main" && (
+                  <Field
+                    control={form.control}
+                    name="video_Id"
+                    label="Video ID*"
+                    placeholder="YouTube/Vimeo ID"
+                    rules={{ required: "Video ID is required" }}
+                  />
+                )}
+
+                <SelectField
+                  control={form.control}
+                  name="course_Category"
+                  label="Course Category*"
+                  rules={{ required: "Course Category is required" }}
+                  items={categoryItems}
+                />
+
+                <Field
+                  control={form.control}
+                  name="category_Description"
+                  label="Category Description (Optional)"
+                  placeholder="Enter description for the category"
+                />
+
+                {courseType === "main" && (
+                  <SelectField
+                    control={form.control}
+                    name="Skill_Level"
+                    label="Skill Level*"
+                    rules={{ required: "Skill Level is required" }}
+                    items={[
+                      { value: "Beginner", label: "Beginner" },
+                      { value: "Intermediate", label: "Intermediate" },
+                      { value: "Advanced", label: "Advanced" },
+                      { value: "all", label: "Appropriate for All" },
+                    ]}
+                  />
+                )}
+
+                <SelectField
+                  control={form.control}
+                  name="instructor"
+                  label="Instructor*"
+                  rules={{ required: "Instructor is required" }}
+                  items={instructorItems}
+                />
+
+                {courseType === "main" && (
+                  <>
+                    <Field
+                      control={form.control}
+                      name="Monthly_Fee"
+                      label="Monthly Fee*"
+                      placeholder="Enter monthly fee"
+                      type="number"
+                      rules={{ required: "Monthly Fee is required" }}
+                      transformValue={(e) => ({
+                        target: {
+                          value:
+                            e.target.value === "" ? undefined : +e.target.value,
+                        },
+                      })}
+                    />
+                    <Field
+                      control={form.control}
+                      name="Admission_Fee"
+                      label="Admission Fee*"
+                      placeholder="Enter admission fee"
+                      type="number"
+                      rules={{ required: "Admission Fee is required" }}
+                      transformValue={(e) => ({
+                        target: {
+                          value:
+                            e.target.value === "" ? undefined : +e.target.value,
+                        },
+                      })}
+                    />
+                    <Field
+                      control={form.control}
+                      name="Duration_Months"
+                      label="Duration Months*"
+                      placeholder="Enter duration in months"
+                      type="number"
+                      rules={{ required: "Duration in Months is required" }}
+                      transformValue={(e) => ({
+                        target: {
+                          value:
+                            e.target.value === "" ? undefined : +e.target.value,
+                        },
+                      })}
+                    />
+                    <Field
+                      control={form.control}
+                      name="Duration_Day"
+                      label="Duration Days*"
+                      placeholder="Enter duration in days"
+                      type="number"
+                      rules={{ required: "Duration in Days is required" }}
+                      transformValue={(e) => ({
+                        target: {
+                          value:
+                            e.target.value === "" ? undefined : +e.target.value,
+                        },
+                      })}
+                    />
+
+                    <FileField
+                      label="Brochure (PDF Only)*"
+                      accept=".pdf"
+                      required
+                      error={brochureError}
+                      onChange={(file) => {
+                        if (file && file.type !== "application/pdf") {
+                          setBrochureError("Only PDF files are allowed");
+                          setSelectedBrochure(null);
+                        } else {
+                          setBrochureError("");
+                          setSelectedBrochure(file);
+                        }
+                      }}
+                    />
+                  </>
+                )}
+
+                <SelectField
+                  control={form.control}
+                  name="Status"
+                  label="Status*"
+                  rules={{ required: "Status is required" }}
+                  items={[
+                    { value: "Active", label: "Active" },
+                    { value: "Inactive", label: "Inactive" },
+                  ]}
+                />
+
+                <SelectField
+                  control={form.control}
+                  name="showtoc"
+                  label="Show table of content?*"
+                  rules={{ required: "Selection is required" }}
+                  items={[
+                    { value: "no", label: "No" },
+                    { value: "yes", label: "Yes" },
+                  ]}
+                />
+
+                <SelectField
+                  control={form.control}
+                  name="View_On_Web"
+                  label="Is View on Web?*"
+                  rules={{ required: "Selection is required" }}
+                  items={[
+                    { value: "yes", label: "Yes" },
+                    { value: "no", label: "No" },
+                  ]}
+                />
+
+                <SelectField
+                  control={form.control}
+                  name="In_Sitemap"
+                  label="In Sitemap?*"
+                  rules={{ required: "Selection is required" }}
+                  items={[
+                    { value: "yes", label: "Yes" },
+                    { value: "no", label: "No" },
+                  ]}
+                />
+
+                <Field
+                  control={form.control}
+                  name="priority"
+                  label="Priority"
+                  placeholder="0.0 to 0.9"
+                  type="number"
+                  transformValue={(e) => ({
+                    target: {
+                      value:
+                        e.target.value === "" ? undefined : +e.target.value,
+                    },
+                  })}
+                />
+
+                <SelectField
+                  control={form.control}
+                  name="Page_Index"
+                  label="Page Index?*"
+                  rules={{ required: "Selection is required" }}
+                  items={[
+                    { value: "yes", label: "Yes" },
+                    { value: "no", label: "No" },
+                  ]}
+                />
+
+                {/* Course Image */}
+                <FileField
+                  label="Course Image*"
+                  accept="image/*"
+                  required
+                  onChange={(file) => setSelectedCourseImage(file)}
+                />
+
+                {/* Short Description */}
+                <Field
+                  control={form.control}
+                  name="Short_Description"
+                  label="Short Description*"
+                  placeholder="Enter short description"
+                  rules={{ required: "Short Description is required" }}
+                  textarea
+                />
+
+                {/* Course Description */}
+                <div className="space-y-2">
+                  <Label className="text-gray-200">Course Description*</Label>
+                  <div className="rounded-md overflow-hidden bg-white/10 text-black">
+                    <RichTextEditor
+                      value={courseDescription || ""}
+                      onChange={setCourseDescription}
+                    />
+                  </div>
+                  {form.formState.isSubmitted && !courseDescription && (
+                    <p className="text-sm text-red-500">
+                      Course Description is required
+                    </p>
+                  )}
+                </div>
+
+                {/* Meta */}
+                <Field
+                  control={form.control}
+                  name="Meta_Title"
+                  label="Meta Title*"
+                  placeholder="Enter meta title"
+                  rules={{ required: "Meta Title is required" }}
+                />
+                <Field
+                  control={form.control}
+                  name="Meta_Description"
+                  label="Meta Description*"
+                  placeholder="Enter meta description"
+                  rules={{ required: "Meta Description is required" }}
+                  textarea
+                />
+
+                <div className="flex justify-center">
+                  <Button
+                    type="submit"
+                    className="gap-2"
+                    disabled={isSubmitting || !courseDescription}
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                        Submitting...
+                      </>
+                    ) : (
+                      "Add Course"
+                    )}
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
+      </div>
+    </>
+  );
+}

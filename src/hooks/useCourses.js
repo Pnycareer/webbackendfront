@@ -3,9 +3,11 @@ import axios from "../utils/axios";
 import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import slugify from "../utils/slugify";
+import { useSnackbar } from "notistack";
 
 const useCourses = () => {
   const navigate = useNavigate();
+  const { enqueueSnackbar } = useSnackbar();
 
   const addCourse = async ({
     data,
@@ -28,30 +30,52 @@ const useCourses = () => {
       }
 
       const formData = new FormData();
+
+      // Required / always-present fields
       formData.append("course_Name", data.course_Name);
       formData.append("url_Slug", data.url_Slug);
-      formData.append("video_Id", data.video_Id);
       formData.append("course_Category", data.course_Category);
       formData.append("category_Description", data.category_Description || "");
-      formData.append("Skill_Level", data.Skill_Level);
       formData.append("Short_Description", data.Short_Description);
       formData.append("Course_Description", courseDescription);
       formData.append("Instructor", data.instructor);
-      formData.append("Monthly_Fee", data.Monthly_Fee);
-      formData.append("Admission_Fee", data.Admission_Fee);
-      formData.append("Duration_Months", data.Duration_Months);
-      formData.append("Duration_Day", data.Duration_Day);
       formData.append("Meta_Title", data.Meta_Title);
       formData.append("Meta_Description", data.Meta_Description);
       formData.append("Status", data.Status);
       formData.append("View_On_Web", data.View_On_Web);
       formData.append("showtoc", data.showtoc);
       formData.append("In_Sitemap", data.In_Sitemap);
-      formData.append("priority", data.priority);
       formData.append("bootcamp", data.bootcamp === "true");
       formData.append("Page_Index", data.Page_Index);
-      formData.append("Custom_Canonical_Url", data.Custom_Canonical_Url);
+      formData.append("Custom_Canonical_Url", data.Custom_Canonical_Url || "");
 
+      if (data.priority !== undefined) {
+        formData.append("priority", data.priority);
+      }
+
+      if (data.Skill_Level) {
+        formData.append("Skill_Level", data.Skill_Level);
+      }
+
+      if (data.video_Id) {
+        formData.append("video_Id", data.video_Id);
+      }
+
+      // ✅ Handle optional number fields safely
+      const optionalFields = [
+        "Monthly_Fee",
+        "Admission_Fee",
+        "Duration_Months",
+        "Duration_Day",
+      ];
+
+      optionalFields.forEach((field) => {
+        if (data[field] !== undefined && data[field] !== null) {
+          formData.append(field, data[field]);
+        }
+      });
+
+      // ✅ Handle files
       if (courseImage) formData.append("course_Image", courseImage);
       if (brochure) formData.append("Brochure", brochure);
 
@@ -59,11 +83,14 @@ const useCourses = () => {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      toast.success("Course added successfully!");
+      enqueueSnackbar("Course added successfully!", { variant: "success" });
       navigate("/dashboard/courses");
     } catch (error) {
       console.error("Add course error:", error);
-      toast.error(error.response?.data?.message || "Something went wrong!");
+      enqueueSnackbar(
+        error.response?.data?.message || "Something went wrong!",
+        { variant: "error" }
+      );
     } finally {
       setIsSubmitting(false);
     }

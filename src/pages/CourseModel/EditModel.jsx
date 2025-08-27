@@ -92,7 +92,7 @@ const handleDeleteLecture = async (lectureId) => {
       courseId: moduleData.courseId._id || moduleData.courseId,
       lectures,
     });
-    setTimeout(() => navigate("/coursemodel"), 1500);
+    setTimeout(() => navigate("/dashboard/coursemodel"), 500);
   } catch (err) {
     // No need to set message manually, it's handled by toast
   }
@@ -187,7 +187,7 @@ const handleDeleteLecture = async (lectureId) => {
                         <input
                           type="text"
                           className="text-black px-3 py-2 border rounded-md"
-                          placeholder="Content"
+                          placeholder="Content (optional)"
                           value={lecture.content}
                           onChange={(e) =>
                             handleLectureChange(

@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import axios from "../../utils/axios";
+import { useNavigate } from "react-router-dom";
+
 
 const Eflayer = () => {
   const [formData, setFormData] = useState({
@@ -12,6 +14,7 @@ const Eflayer = () => {
 
   const [categories, setCategories] = useState([]);
   const [message, setMessage] = useState("");
+  const navigate = useNavigate()
 
   // Fetch categories on page load
 useEffect(() => {
@@ -81,6 +84,7 @@ useEffect(() => {
       const result = await res.json();
       console.log(result);
       setMessage("Eflyer uploaded successfully!");
+      navigate('/dashboard/eflayer')
       setFormData({
         name: "",
         title: "",
@@ -157,7 +161,7 @@ useEffect(() => {
             name="flyerFile"
             accept="image/*"
             onChange={handleChange}
-            required
+            
             className="w-full border p-2 rounded text-black"
           />
         </div>
@@ -171,7 +175,7 @@ useEffect(() => {
             name="brochure"
             accept="application/pdf"
             onChange={handleChange}
-            required
+           
             className="w-full border p-2 rounded text-black"
           />
         </div>

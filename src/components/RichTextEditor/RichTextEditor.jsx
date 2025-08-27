@@ -1,98 +1,117 @@
-import React, { useEffect, useRef } from "react";
+import React, { useMemo, useRef } from "react";
 import ReactQuill from "react-quill";
-import Quill from "quill";
 import axios from "axios";
 import "react-quill/dist/quill.snow.css";
 
-const RichTextEditor = ({ value, onChange, height = "300px" }) => {
-  const quillRef = useRef();
+export default function RichTextEditor({
+  value,
+  onChange,
+  placeholder = "Start typing…",
+  height = 300,
+}) {
+  const quillRef = useRef(null);
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const icons = Quill.import("ui/icons");
-      icons["youtube"] = `
-        <svg viewBox="0 0 24 24">
-          <path d="M8.051 1.999h.089c.822.003 4.987.033 6.11.335a2.01 2.01 0 0 1 1.415 1.42c.101.38.172.883.22 1.402l.01.104.022.26.008.104c.065.914.073 1.77.074 1.957v.075c-.001.194-.01 1.108-.082 2.06l-.008.105-.009.104c-.05.572-.124 1.14-.235 1.558a2.01 2.01 0 0 1-1.415 1.42c-1.16.312-5.569.334-6.18.335h-.142c-.309 0-1.587-.006-2.927-.052l-.17-.006-.087-.004-.171-.007-.171-.007c-1.11-.049-2.167-.128-2.654-.26a2.01 2.01 0 0 1-1.415-1.419c-.111-.417-.185-.986-.235-1.558L.09 9.82l-.008-.104A31 31 0 0 1 0 7.68v-.123c.002-.215.01-.958.064-1.778l.007-.103.003-.052.008-.104.022-.26.01-.104c.048-.519.119-1.023.22-1.402a2.01 2.01 0 0 1 1.415-1.42c.487-.13 1.544-.21 2.654-.26l.17-.007.172-.006.086-.003.171-.007A100 100 0 0 1 7.858 2zM6.4 5.209v4.818l4.157-2.408z"/>
-        </svg>`;
+  // ---- IMAGE UPLOAD (your code, Quill-integrated) ----
+  const handleImageChosen = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+
+    const fd = new FormData();
+    fd.append("editorImage", file);
+
+    try {
+      const res = await axios.post(
+        `${import.meta.env.VITE_API_URL}/upload/upload-editor-image`,
+        fd,
+        { headers: { "Content-Type": "multipart/form-data" } }
+      );
+
+      const url = res?.data?.url;
+      if (url) {
+        const quill = quillRef.current.getEditor();
+        const range = quill.getSelection(true);
+        quill.insertEmbed(range.index, "image", url);
+        quill.setSelection(range.index + 1, 0);
+      }
+    } catch (err) {
+      console.error("Image upload failed:", err);
     }
-  }, []);
+  };
 
-  const handleImageUpload = () => {
+  const imageHandler = () => {
     const input = document.createElement("input");
     input.setAttribute("type", "file");
     input.setAttribute("accept", "image/*");
+    input.onchange = handleImageChosen;
     input.click();
+  };
 
-    input.onchange = async () => {
-      const file = input.files[0];
-      const formData = new FormData();
-      formData.append("editorImage", file);
-
-      try {
-        const res = await axios.post(
-          `${import.meta.env.VITE_API_URL}/upload/upload-editor-image`,
-          formData,
-          { headers: { "Content-Type": "multipart/form-data" } }
-        );
-
-        console.log(res.data.url , 'resurl')
-        const imageUrl = res.data.url;
-        const quill = quillRef.current.getEditor();
-        const range = quill.getSelection();
-        quill.insertEmbed(range.index, "image", imageUrl);
-      } catch (err) {
-        console.error("Image upload error:", err);
+  // ---- YOUTUBE INSERT ----
+  const extractYouTubeId = (url) => {
+    try {
+      const u = new URL(url);
+      if (u.hostname === "youtu.be") return u.pathname.slice(1);
+      if (u.hostname === "www.youtube.com" || u.hostname === "youtube.com") {
+        // handles https://www.youtube.com/watch?v=ID and share links with extra params
+        return u.searchParams.get("v");
       }
-    };
+      return null;
+    } catch {
+      return null;
+    }
   };
 
-  const insertYouTubeVideo = () => {
-    const videoId = prompt("Enter YouTube video ID:");
-    if (!videoId) return;
+  const videoHandler = () => {
+    const url = prompt("Paste YouTube video URL:");
+    if (!url) return;
 
-    const videoUrl = `https://www.youtube.com/embed/${videoId}`;
-    const editor = quillRef.current.getEditor();
-    const range = editor.getSelection();
-    editor.insertEmbed(range.index, "video", videoUrl);
-    editor.setSelection(range.index + 1);
+    const videoId = extractYouTubeId(url);
+    if (!videoId) {
+      alert("Invalid YouTube URL");
+      return;
+    }
+
+    const quill = quillRef.current.getEditor();
+    const range = quill.getSelection(true);
+    // Quill understands 'video' embeds — give it the embeddable URL
+    quill.insertEmbed(range.index, "video", `https://www.youtube.com/embed/${videoId}`);
+    quill.setSelection(range.index + 1, 0);
   };
 
-  const modules = {
-    toolbar: {
-      container: [
-        [{ header: [1, 2, 3, false] }],
-        ["bold", "italic", "underline"],
-        [{ align: [] }],  // <<== ADD ALIGNMENT BUTTONS
-        ["link", "image", "video", "youtube"],
-        [{ list: "ordered" }, { list: "bullet" }],
-      ],
-      handlers: {
-        image: handleImageUpload,
-        youtube: insertYouTubeVideo,
+  const modules = useMemo(
+    () => ({
+      toolbar: {
+        container: [
+          [{ header: [1, 2, 3, false] }],
+          ["bold", "italic", "underline", "strike"],
+          [{ list: "ordered" }, { list: "bullet" }],
+          ["blockquote", "code-block"],
+          ["link", "image", "video"], // keep both
+          ["clean"],
+        ],
+        handlers: {
+          image: imageHandler,
+          video: videoHandler, // <- custom YouTube handler
+        },
       },
-    },
-  };
-
-  const formats = [
-    "header", "bold", "italic", "underline", 
-    "link", "image", "video", "list", "bullet",
-    "align" // <<== IMPORTANT: ADD align in formats
-  ];
+      clipboard: { matchVisual: false },
+    }),
+    []
+  );
 
   return (
-    <div className="bg-white text-black rounded-md hover:text-white">
+    <div className="w-full">
       <ReactQuill
         ref={quillRef}
+        theme="snow"
         value={value}
         onChange={onChange}
-        theme="snow"
+        placeholder={placeholder}
         modules={modules}
-        formats={formats}
-        className="text-black"
-        style={{ minHeight: height }}
+        style={{ height, backgroundColor: "#fff" }}
+        className="rounded-md"
       />
     </div>
   );
-};
-
-export default RichTextEditor;
+}
