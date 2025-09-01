@@ -22,6 +22,7 @@ const categories = [
   { label: "Marketing", value: "marketing" },
   { label: "Software", value: "software" },
   { label: "Education", value: "education" },
+  { label: "Business", value: "business" },
   { label: "Short Courses in Islamabad", value: "short-courses-in-islamabad" },
   { label: "Short Courses in Faisalabad", value: "short-courses-in-faisalabad" },
   { label: "IT Softwares", value: "it-softwares" },

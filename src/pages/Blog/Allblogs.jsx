@@ -25,7 +25,9 @@ const Allblogs = () => {
   const fetchBlogs = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/blogs`);
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/blogs`
+      );
       setCategories(response.data);
 
       const initialCounts = {};
@@ -41,33 +43,35 @@ const Allblogs = () => {
     }
   };
 
- const handleDelete = async (blogId) => {
-  const confirmed = window.confirm("Are you sure you want to delete this blog?");
-  if (!confirmed) return;
-
-  try {
-    // Make delete API request
-    const res = await axios.delete(`${import.meta.env.VITE_API_URL}/api/blogs/${blogId}`);
-
-    // Remove the blog from UI (locally update)
-    setCategories((prevCategories) =>
-      prevCategories.map((cat) => ({
-        ...cat,
-        blogs: cat.blogs.filter((blog) => blog._id !== blogId),
-      }))
+  const handleDelete = async (blogId) => {
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this blog?"
     );
+    if (!confirmed) return;
 
-    toast.success(res.data?.message || "Blog deleted successfully!");
-  } catch (error) {
-    console.error("Error deleting blog:", error);
-    const message =
-      error.response?.data?.message || "Something went wrong while deleting the blog.";
-    toast.error(message);
-  }
-};
+    try {
+      // Make delete API request
+      const res = await axios.delete(
+        `${import.meta.env.VITE_API_URL}/api/blogs/${blogId}`
+      );
 
+      // Remove the blog from UI (locally update)
+      setCategories((prevCategories) =>
+        prevCategories.map((cat) => ({
+          ...cat,
+          blogs: cat.blogs.filter((blog) => blog._id !== blogId),
+        }))
+      );
 
-  
+      toast.success(res.data?.message || "Blog deleted successfully!");
+    } catch (error) {
+      console.error("Error deleting blog:", error);
+      const message =
+        error.response?.data?.message ||
+        "Something went wrong while deleting the blog.";
+      toast.error(message);
+    }
+  };
 
   const handleEdit = (blogId) => {
     navigate(`/dashboard/editblog/${blogId}`);
@@ -121,7 +125,10 @@ const Allblogs = () => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-black">All Blogs</h1>
         <div className="flex gap-4 items-center">
-          <Link to='/dashboard/blog-post' className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+          <Link
+            to="/dashboard/blog-post"
+            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+          >
             Add Blog
           </Link>
         </div>
@@ -166,121 +173,125 @@ const Allblogs = () => {
         <NoResult />
       ) : (
         filteredCategories
-        .filter((category) => category.blogs.length > 0) // ✨
-        .map((category) => (
-          <div key={category._id} className="mb-10">
-            <h2 className="text-2xl font-semibold text-blue-400 mb-4 capitalize">
-              {category.blogCategory}
-            </h2>
+          .filter((category) => category.blogs.length > 0) // ✨
+          .map((category) => (
+            <div key={category._id} className="mb-10">
+              <h2 className="text-2xl font-semibold text-blue-400 mb-4 capitalize">
+                {category.blogCategory}
+              </h2>
 
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-700 mb-6">
-                <thead className="bg-gray-800 text-gray-300">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                      Sr. No
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                      Title
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                      Description
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                      Image
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-gray-900 divide-y divide-gray-700 text-gray-300">
-                  {category.blogs.length === 0 ? (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-700 mb-6">
+                  <thead className="bg-gray-800 text-gray-300">
                     <tr>
-                      <td
-                        colSpan="6"
-                        className="text-center py-4 text-gray-400"
-                      >
-                        No matching blogs found.
-                      </td>
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                        Sr. No
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                        Title
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                        Description
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                        Image
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                        Actions
+                      </th>
                     </tr>
-                  ) : (
-                    <AnimatePresence>
-                      {category.blogs
-                        .slice(
-                          0,
-                          searchQuery
-                            ? category.blogs.length
-                            : visibleCounts[category._id] || 5
-                        )
-                        .map((blog, index) => (
-                          <motion.tr
-                            key={blog._id}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -10 }}
-                            transition={{ duration: 0.3 }}
-                          >
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              {index + 1}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="font-semibold">
-                                {blog.blogName}
-                              </div>
-                              <div className="text-sm text-gray-400">
-                                {blog.author?.name}
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <p className="truncate w-48">
-                                {blog.shortDescription}
-                              </p>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <img
-                                src={`${import.meta.env.VITE_API_URL}/${blog.blogImage.replace(
-                                  /\\/g,
-                                  "/"
-                                )}`}
-                                alt="Blog"
-                                className="w-16 h-16 object-cover rounded"
-                              />
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <span
-                                className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${blog.inviewweb ? "bg-green-600 text-white" : "bg-red-600 text-white"}`}
-                              >
-                                {blog.inviewweb ? "Active" : "Inactive"}
-                              </span>
-                            </td>
+                  </thead>
+                  <tbody className="bg-gray-900 divide-y divide-gray-700 text-gray-300">
+                    {category.blogs.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan="6"
+                          className="text-center py-4 text-gray-400"
+                        >
+                          No matching blogs found.
+                        </td>
+                      </tr>
+                    ) : (
+                      <AnimatePresence>
+                        {category.blogs
+                          .slice(
+                            0,
+                            searchQuery
+                              ? category.blogs.length
+                              : visibleCounts[category._id] || 5
+                          )
+                          .map((blog, index) => (
+                            <motion.tr
+                              key={blog._id}
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -10 }}
+                              transition={{ duration: 0.3 }}
+                            >
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                {index + 1}
+                              </td>
+                              <td className="px-6 py-4">
+                                <div className="font-semibold break-words whitespace-normal">
+                                  {blog.blogName}
+                                </div>
+                                <div className="text-sm text-gray-400">
+                                  {blog.author?.name}
+                                </div>
+                              </td>
 
-                            <td className="px-6 py-4 whitespace-nowrap flex gap-4">
-                              <button
-                                onClick={() => handleEdit(blog._id)}
-                                className="text-blue-400 hover:underline"
-                              >
-                                Edit
-                              </button>
-                              <button
-                                onClick={() => handleDelete(blog._id)}
-                                className="text-red-400 hover:underline"
-                              >
-                                Delete
-                              </button>
-                            </td>
-                          </motion.tr>
-                        ))}
-                    </AnimatePresence>
-                  )}
-                </tbody>
-              </table>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <p className="truncate w-48">
+                                  {blog.shortDescription}
+                                </p>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <img
+                                  src={`${
+                                    import.meta.env.VITE_API_URL
+                                  }/${blog.blogImage.replace(/\\/g, "/")}`}
+                                  alt="Blog"
+                                  className="w-16 h-16 object-cover rounded"
+                                />
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <span
+                                  className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                    blog.inviewweb
+                                      ? "bg-green-600 text-white"
+                                      : "bg-red-600 text-white"
+                                  }`}
+                                >
+                                  {blog.inviewweb ? "Active" : "Inactive"}
+                                </span>
+                              </td>
+
+                              <td className="px-6 py-4 whitespace-nowrap flex gap-4">
+                                <button
+                                  onClick={() => handleEdit(blog._id)}
+                                  className="text-blue-400 hover:underline"
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={() => handleDelete(blog._id)}
+                                  className="text-red-400 hover:underline"
+                                >
+                                  Delete
+                                </button>
+                              </td>
+                            </motion.tr>
+                          ))}
+                      </AnimatePresence>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
-        ))
+          ))
       )}
 
       {/* Scroll observer div */}

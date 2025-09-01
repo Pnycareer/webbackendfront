@@ -6,6 +6,7 @@ import Login from "../../pages/Auth/Login";
 import PrivateRoute from "../protectedroutes/PrivateRoute";
 import AccessDenied from "../../pages/AccessDenied/Accessdenied";
 import AuthLock from "../../pages/AuthLock";
+import ContactData from "@/pages/ContactData/ContactData";
 
 const Webbanner = lazy(() => import("../../pages/Webbanner"));
 const CategoryTable = lazy(() => import("../category/CategoryTable"));
@@ -42,6 +43,7 @@ const Privacypolicy = lazy(() => import("../../pages/Privacypolicy/Privacypolicy
 const GetNews = lazy(() => import("../News/GetNews"));
 const Editnews = lazy(() => import("../News/Edit"));
 const CreateNews = lazy(() => import("../../pages/News/Addnews"));
+
 
 // Wrapper for Suspense
 const withSuspense = (Component) => (
@@ -128,6 +130,7 @@ const router = createBrowserRouter([
       { path: "edit-eflayer/:id", element: withSuspense(editeflayer) },
 
       { path: "brouchuredata", element: withSuspense(Brouchuredata) },
+      { path: "contact-data", element: withSuspense(ContactData) },
 
       { path: "faqs", element: withSuspense(FaqList) },
       { path: "editfaq/:id", element: withSuspense(EditFaq) },

@@ -112,6 +112,12 @@ const ALL_SIDEBAR_ITEMS = [
     href: "/dashboard/brouchuredata",
   },
   {
+    name: "Contact Data",
+    icon: MdFolderSpecial,
+    color: "#F59E0B",
+    href: "/dashboard/contact-data",
+  },
+  {
     name: "Faqs",
     icon: FaQq,
     color: "#F59E0B",
