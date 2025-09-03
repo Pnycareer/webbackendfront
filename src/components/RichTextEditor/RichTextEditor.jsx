@@ -7,7 +7,7 @@ export default function RichTextEditor({
   value,
   onChange,
   placeholder = "Start typing…",
-  height = 300,
+  height = 500,
 }) {
   const quillRef = useRef(null);
 

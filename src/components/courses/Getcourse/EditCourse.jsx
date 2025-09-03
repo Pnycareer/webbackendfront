@@ -108,7 +108,7 @@ const EditCourse = () => {
     return text
       .trim()
       .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, "") // Remove special characters
+      .replace(/[^a-z0-9\s.-]/g, "") // ✅ allow dots and dashes
       .replace(/\s+/g, "-") // Replace spaces with dash
       .replace(/-+/g, "-"); // Replace multiple dashes with single dash
   };
@@ -129,19 +129,33 @@ const EditCourse = () => {
   //   navigate("/courses");
   // };
 
+  // const handleChange = (e) => {
+  //   const { name, value, type, checked } = e.target;
+  //   setCourse((prevCourse) => ({
+  //     ...prevCourse,
+  //     [name]: type === "checkbox" ? checked : value,
+  //   }));
+  // };
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+
     setCourse((prevCourse) => ({
       ...prevCourse,
-      [name]: type === "checkbox" ? checked : value,
+      [name]:
+        type === "checkbox"
+          ? checked
+          : name === "url_Slug"
+          ? slugify(value) // ✅ Apply slugify ONLY for url_Slug
+          : value,
     }));
   };
 
   if (loading) return <p>Loading...</p>;
   if (error) return <p className="text-red-500">{error}</p>;
 
-  console.log(targetCategoryId , 'target')
-  console.log(categories , 'categories')
+  console.log(targetCategoryId, "target");
+  console.log(categories, "categories");
 
   return (
     <div className="w-full overflow-auto">
