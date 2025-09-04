@@ -75,7 +75,11 @@ export default function RichTextEditor({
     const quill = quillRef.current.getEditor();
     const range = quill.getSelection(true);
     // Quill understands 'video' embeds — give it the embeddable URL
-    quill.insertEmbed(range.index, "video", `https://www.youtube.com/embed/${videoId}`);
+    quill.insertEmbed(
+      range.index,
+      "video",
+      `https://www.youtube.com/embed/${videoId}`
+    );
     quill.setSelection(range.index + 1, 0);
   };
 
@@ -109,9 +113,20 @@ export default function RichTextEditor({
         onChange={onChange}
         placeholder={placeholder}
         modules={modules}
-        style={{ height, backgroundColor: "#fff" }}
+        style={{ height }}
         className="rounded-md"
       />
+
+      <style>
+        {`
+  .ql-container {
+    min-height: ${height}px;
+  }
+  .ql-editor {
+    min-height: ${height - 50}px;
+  }
+`}
+      </style>
     </div>
   );
 }

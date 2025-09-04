@@ -151,7 +151,7 @@ export default function BlogForm() {
               <div className="space-y-2">
                 <Label className="text-gray-200">Blog Description*</Label>
                 <div className="rounded-md overflow-hidden bg-white/10 text-black">
-                  <RichTextEditor value={blogDescription} onChange={setBlogDescription} height="300px" />
+                  <RichTextEditor value={blogDescription} onChange={setBlogDescription} height="500px" />
                 </div>
                 {form.formState.isSubmitted && !blogDescription && (
                   <p className="text-sm text-red-500">Blog Description is required</p>
