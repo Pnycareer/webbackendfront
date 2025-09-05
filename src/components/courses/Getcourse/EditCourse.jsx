@@ -47,6 +47,7 @@ const EditCourse = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [targetCategoryId, setTargetCategoryId] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { updateCourse } = useCourses(); // 👈 inside component
 
   const quillRef = useRef();
@@ -113,18 +114,17 @@ const EditCourse = () => {
       .replace(/-+/g, "-"); // Replace multiple dashes with single dash
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault(); // 🔥 This is what you're missing!
-    const { faqs, ...courseWithoutFaqs } = course;
-    await updateCourse({
-      id,
-      data: courseWithoutFaqs,
-      brochureFile,
-      targetCategoryId,
-      setIsSubmitting: null,
-    });
-  };
-
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  const { faqs, ...courseWithoutFaqs } = course;
+  await updateCourse({
+    id,
+    data: courseWithoutFaqs,
+    brochureFile,
+    targetCategoryId,
+    setIsSubmitting,
+  });
+};
   // const handleCancel = () => {
   //   navigate("/courses");
   // };
@@ -511,10 +511,14 @@ const EditCourse = () => {
           <div className="flex justify-between">
             <button
               type="submit"
-              className="bg-blue-600 hover:bg-blue-500 text-white py-2 px-4 rounded-lg"
+              disabled={isSubmitting}
+              className={`bg-blue-600 hover:bg-blue-500 text-white py-2 px-4 rounded-lg ${
+                isSubmitting ? "opacity-60 cursor-not-allowed" : ""
+              }`}
             >
-              Update Course
+              {isSubmitting ? "Updating…" : "Update Course"}
             </button>
+
             <button
               type="button"
               // onClick={handleCancel}

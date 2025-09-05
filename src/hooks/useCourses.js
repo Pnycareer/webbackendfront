@@ -5,6 +5,8 @@ import { useNavigate } from "react-router-dom";
 import slugify from "../utils/slugify";
 import { useSnackbar } from "notistack";
 
+
+
 const useCourses = () => {
   const navigate = useNavigate();
   const { enqueueSnackbar } = useSnackbar();
@@ -193,12 +195,18 @@ const useCourses = () => {
     }
   };
 
+  const reorderCourses = async ({ categoryId, order }) => {
+  // order = array of course _ids in the new order
+  await axios.put(`/courses/reorder/${categoryId}`, { order });
+};
+
   return {
     addCourse,
     fetchCourses,
     deleteCourse,
     updateStatus,
     updateCourse, // 👈 new function
+    reorderCourses, // 👈 expose it
   };
 };
 
