@@ -1,176 +1,349 @@
 "use client";
-import React, { useEffect, useState } from "react";
-import { motion } from "framer-motion";
-import { FiTrash2, FiEdit } from "react-icons/fi";
-import { FaWhatsapp } from "react-icons/fa";
 
-const Brouchuredata = () => {
-  const [data, setData] = useState([]);
-  const [editingId, setEditingId] = useState(null);
-  const [form, setForm] = useState({
-    name: "",
-    phone: "",
-    email: "",
-    city: "",
-    courseName: "",
-  });
+import React, { useEffect, useMemo, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Download, FileDown, RefreshCw, Search } from "lucide-react";
+
+// Utils
+const formatDate = (iso) => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  return `${dd}-${mm}-${yyyy}`;
+};
+
+const withinRange = (iso, start, end) => {
+  if (!iso) return false;
+  const t = new Date(iso).setHours(0, 0, 0, 0);
+  const s = start ? new Date(start).setHours(0, 0, 0, 0) : null;
+  const e = end ? new Date(end).setHours(23, 59, 59, 999) : null;
+  if (s && t < s) return false;
+  if (e && t > e) return false;
+  return true;
+};
+
+export default function DownloadBrochureData() {
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  // filters
+  const [q, setQ] = useState("");
+  const [city, setCity] = useState("all");
+  const [startDate, setStartDate] = useState(""); // yyyy-mm-dd (from <input type="date"/>)
+  const [endDate, setEndDate] = useState("");
 
   const fetchData = async () => {
-    const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/brochure`);
-    const json = await res.json();
-    setData(json);
+    try {
+      setLoading(true);
+      setError("");
+      const base = import.meta.env.VITE_API_URL;
+      const res = await fetch(`${base}/api/v1/brochure`, { cache: "no-store" });
+      if (!res.ok) throw new Error(`Request failed: ${res.status}`);
+      const json = await res.json();
+      // Expecting objects like {_id, name, phone, email, city, courseName, createdAt}
+      setRows(Array.isArray(json) ? json : []);
+    } catch (e) {
+      setError(e?.message || "Failed to load data");
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
     fetchData();
   }, []);
 
-  const handleDelete = async (id) => {
-    await fetch(`${import.meta.env.VITE_API_URL}/api/v1/brochure/${id}`, {
-      method: "DELETE",
+  const cities = useMemo(() => {
+    const s = new Set();
+    rows.forEach((r) => r?.city && s.add(r.city));
+    return ["all", ...Array.from(s).sort((a, b) => a.localeCompare(b))];
+  }, [rows]);
+
+  const filtered = useMemo(() => {
+    const term = q.trim().toLowerCase();
+    return rows
+      .filter((r) => {
+        // city filter
+        if (city !== "all" && r.city !== city) return false;
+        // date range filter (use createdAt | fallback updatedAt)
+        const dateField = r.createdAt || r.updatedAt;
+        if (
+          (startDate || endDate) &&
+          !withinRange(dateField, startDate, endDate)
+        )
+          return false;
+        // search filter across key fields
+        if (!term) return true;
+        const hay = [r.name, r.email, r.phone, r.city, r.courseName]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        return hay.includes(term);
+      })
+      .sort((a, b) => {
+        const da = new Date(a.createdAt || a.updatedAt || 0).getTime();
+        const db = new Date(b.createdAt || b.updatedAt || 0).getTime();
+        return db - da; // newest first
+      });
+  }, [rows, q, city, startDate, endDate]);
+
+  const downloadCSV = () => {
+    const cols = ["Sr No", "Name", "Email", "Phone", "City", "Course", "Date"];
+    const lines = [cols.join(",")];
+    filtered.forEach((r, i) => {
+      const row = [
+        i + 1,
+        r.name || "",
+        r.email || "",
+        r.phone || "",
+        r.city || "",
+        r.courseName || "",
+        formatDate(r.createdAt || r.updatedAt || ""),
+      ].map((v) => `"${String(v).replaceAll('"', '""')}"`); // CSV escape
+      lines.push(row.join(","));
     });
-    fetchData();
+    const blob = new Blob(["\uFEFF" + lines.join("\n")], {
+      type: "text/csv;charset=utf-8;",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = buildFilename("csv");
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
-  const handleEdit = (item) => {
-    setEditingId(item._id);
-    setForm(item);
+  const buildFilename = (ext) => {
+    const rangeLabel =
+      startDate || endDate ? `_${formatRangeForName(startDate, endDate)}` : "";
+    return `brochure_data${rangeLabel}.${ext}`;
   };
 
-  const handleUpdate = async () => {
-    await fetch(`${import.meta.env.VITE_API_URL}/api/v1/brochure/${editingId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
-    });
-    setEditingId(null);
-    setForm({ name: "", phone: "", email: "", city: "", courseName: "" });
-    fetchData();
+  const formatRangeForName = (s, e) => {
+    const fmt = (d) => {
+      if (!d) return "";
+      const [yyyy, mm, dd] = d.split("-");
+      return `${dd}-${mm}-${yyyy}`;
+    };
+    return [fmt(s), fmt(e)].filter(Boolean).join("_to_");
+  };
+
+  const openPrintPDF = () => {
+    const win = window.open("", "_blank");
+    if (!win) return;
+    const style = `
+      <style>
+        body { font-family: Inter, ui-sans-serif, system-ui, -apple-system; padding: 24px; }
+        h1 { font-size: 18px; margin: 0 0 12px; }
+        .meta { margin-bottom: 16px; color: #475569; font-size: 12px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #e2e8f0; padding: 8px; font-size: 12px; }
+        th { background: #f8fafc; text-align: left; }
+        tfoot td { font-weight: 600; }
+        @media print { @page { size: A4 landscape; margin: 12mm; } }
+      </style>
+    `;
+
+    const header = `
+      <h1>Download Brochure Data</h1>
+      <div class="meta">
+        Exported: ${formatDate(new Date().toISOString())}
+        ${
+          startDate || endDate
+            ? ` | Range: ${formatRangeForName(startDate, endDate)}`
+            : ""
+        }
+      </div>
+    `;
+
+    const thead = `
+      <thead>
+        <tr>
+          <th>Sr No</th>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Phone</th>
+          <th>City</th>
+          <th>Course</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+    `;
+
+    const tbody = filtered
+      .map(
+        (r, i) => `
+        <tr>
+          <td>${i + 1}</td>
+          <td>${r.name || ""}</td>
+          <td>${r.email || ""}</td>
+          <td>${r.phone || ""}</td>
+          <td>${r.city || ""}</td>
+          <td>${r.courseName || ""}</td>
+          <td>${formatDate(r.createdAt || r.updatedAt || "")}</td>
+        </tr>
+      `
+      )
+      .join("");
+
+    win.document.write(
+      `<!doctype html><html><head><meta charset="utf-8"/>${style}</head><body>${header}<table>${thead}<tbody>${tbody}</tbody></table></body></html>`
+    );
+    win.document.close();
+    win.focus();
+    win.print();
   };
 
   return (
-    <motion.div
-      className="p-6 max-w-6xl mx-auto text-white relative"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-    >
-      <h2 className="text-3xl font-bold mb-6 text-center text-black">📥 Brochure Requests</h2>
+    <div className="w-full px-4 md:px-8 py-6">
+      <Card className="w-full">
+        <CardHeader className="border-b">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <CardTitle className="text-2xl md:text-3xl font-bold tracking-tight">
+              Download Brochure Data
+            </CardTitle>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={fetchData}
+                disabled={loading}
+              >
+                <RefreshCw className="mr-2 h-4 w-4" />{" "}
+                {loading ? "Refreshing..." : "Refresh"}
+              </Button>
+              <Button size="sm" onClick={downloadCSV}>
+                <Download className="mr-2 h-4 w-4" /> Download Excel (CSV)
+              </Button>
+              <Button size="sm" variant="secondary" onClick={openPrintPDF}>
+                <FileDown className="mr-2 h-4 w-4" /> Download PDF
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
 
-      <div className="overflow-x-auto max-h-screen overflow-y-auto rounded-xl border border-gray-700">
-        <table className="min-w-full bg-gray-900 border border-gray-700 rounded-xl overflow-hidden">
-          <thead className="bg-gray-800 text-white">
-            <tr>
-              <th className="px-4 py-3 text-left">Name</th>
-              <th className="px-4 py-3 text-left">Email</th>
-              <th className="px-4 py-3 text-left">Phone</th>
-              <th className="px-4 py-3 text-left">City</th>
-              <th className="px-4 py-3 text-left">Course</th>
-              <th className="px-4 py-3 text-center">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.map((item) =>
-              editingId === item._id ? (
-                <tr key={item._id} className="bg-gray-800">
-                  <td className="px-4 py-2">
-                    <input
-                      type="text"
-                      value={form.name}
-                      onChange={(e) => setForm({ ...form, name: e.target.value })}
-                      className="w-full px-2 py-1 rounded bg-gray-700 text-white"
-                    />
-                  </td>
-                  <td className="px-4 py-2">
-                    <input
-                      type="email"
-                      value={form.email}
-                      onChange={(e) => setForm({ ...form, email: e.target.value })}
-                      className="w-full px-2 py-1 rounded bg-gray-700 text-white"
-                    />
-                  </td>
-                  <td className="px-4 py-2">
-                    <input
-                      type="text"
-                      value={form.phone}
-                      onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                      className="w-full px-2 py-1 rounded bg-gray-700 text-white"
-                    />
-                  </td>
-                  <td className="px-4 py-2">
-                    <input
-                      type="text"
-                      value={form.city}
-                      onChange={(e) => setForm({ ...form, city: e.target.value })}
-                      className="w-full px-2 py-1 rounded bg-gray-700 text-white"
-                    />
-                  </td>
-                  <td className="px-4 py-2">
-                    <input
-                      type="text"
-                      value={form.courseName}
-                      onChange={(e) => setForm({ ...form, courseName: e.target.value })}
-                      className="w-full px-2 py-1 rounded bg-gray-700 text-white"
-                    />
-                  </td>
-                  <td className="px-4 py-2 text-center space-x-2 flex">
-                    <button
-                      onClick={handleUpdate}
-                      className="bg-blue-600 px-3 py-1 rounded text-sm hover:bg-blue-500"
-                    >
-                      Save
-                    </button>
-                    <button
-                      onClick={() => setEditingId(null)}
-                      className="bg-gray-500 px-3 py-1 rounded text-sm hover:bg-gray-400"
-                    >
-                      Cancel
-                    </button>
-                  </td>
-                </tr>
-              ) : (
-                <motion.tr
-                  key={item._id}
-                  className="border-t border-gray-800 hover:bg-gray-800 transition"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                >
-                  <td className="px-4 py-3">{item.name}</td>
-                  <td className="px-4 py-3">{item.email}</td>
-                  <td className="px-4 py-3 flex items-center gap-2">
-                    {item.phone}
-                    <a
-                      href={`https://wa.me/92${item.phone}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-green-500 hover:text-green-400"
-                    >
-                      <FaWhatsapp size={18} />
-                    </a>
-                  </td>
-                  <td className="px-4 py-3">{item.city}</td>
-                  <td className="px-4 py-3">{item.courseName}</td>
-                  <td className="px-4 py-3 text-center space-x-4">
-                    <button
-                      onClick={() => handleEdit(item)}
-                      className="text-blue-400 hover:text-blue-600"
-                    >
-                      <FiEdit size={18} />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(item._id)}
-                      className="text-red-400 hover:text-red-600"
-                    >
-                      <FiTrash2 size={18} />
-                    </button>
-                  </td>
-                </motion.tr>
-              )
-            )}
-          </tbody>
-        </table>
-      </div>
-    </motion.div>
+        <CardContent className="pt-6">
+          {/* Filters */}
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-3 mb-6">
+            <div className="md:col-span-2">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  placeholder="Search name, email, phone, city, course"
+                  className="pl-9"
+                />
+              </div>
+            </div>
+
+            <div>
+              <Select value={city} onValueChange={setCity}>
+                <SelectTrigger>
+                  <SelectValue placeholder="City" />
+                </SelectTrigger>
+                <SelectContent>
+                  {cities.map((c) => (
+                    <SelectItem key={c} value={c}>
+                      {c === "all" ? "All Cities" : c}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                aria-label="Start date"
+              />
+            </div>
+            <div>
+              <Input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                aria-label="End date"
+              />
+            </div>
+          </div>
+
+          {/* Table */}
+          <div className="w-full overflow-auto rounded-md border">
+            <Table className="w-full">
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[80px]">Sr No</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Phone</TableHead>
+                  <TableHead>City</TableHead>
+                  <TableHead>Course</TableHead>
+                  <TableHead>Date</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {error ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-red-600">
+                      {error}
+                    </TableCell>
+                  </TableRow>
+                ) : filtered.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-muted-foreground">
+                      No records found.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filtered.map((r, idx) => (
+                    <TableRow key={r._id}>
+                      <TableCell>{idx + 1}</TableCell>
+                      <TableCell>{r.name}</TableCell>
+                      <TableCell>{r.email}</TableCell>
+                      <TableCell>{r.phone}</TableCell>
+                      <TableCell>{r.city}</TableCell>
+                      <TableCell>{r.courseName}</TableCell>
+                      <TableCell>
+                        {formatDate(r.createdAt || r.updatedAt)}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Helper text */}
+          <p className="text-xs text-muted-foreground mt-3">
+            Tip: Use the date fields to view a custom range (e.g., 01-09-2025 to
+            30-09-2025), then download as CSV (Excel) or PDF. City and search
+            filters apply to downloads.
+          </p>
+        </CardContent>
+      </Card>
+    </div>
   );
-};
-
-export default Brouchuredata;
+}
