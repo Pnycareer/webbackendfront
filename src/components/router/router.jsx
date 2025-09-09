@@ -7,6 +7,7 @@ import PrivateRoute from "../protectedroutes/PrivateRoute";
 import AccessDenied from "../../pages/AccessDenied/Accessdenied";
 import AuthLock from "../../pages/AuthLock";
 import ContactData from "@/pages/ContactData/ContactData";
+import CourseCategoryMeta from "../Meta/CourseCategoryMeta";
 
 const Webbanner = lazy(() => import("../../pages/Webbanner"));
 const CategoryTable = lazy(() => import("../category/CategoryTable"));
@@ -43,6 +44,7 @@ const Privacypolicy = lazy(() => import("../../pages/Privacypolicy/Privacypolicy
 const GetNews = lazy(() => import("../News/GetNews"));
 const Editnews = lazy(() => import("../News/Edit"));
 const CreateNews = lazy(() => import("../../pages/News/Addnews"));
+
 
 
 // Wrapper for Suspense
@@ -107,6 +109,7 @@ const router = createBrowserRouter([
       { path: "edit-category/:id", element: withSuspense(EditCategory) },
 
       { path: "courses", element: withSuspense(Courses) },
+      { path: "add-meta", element: withSuspense(CourseCategoryMeta) },
       { path: "courses-faqs", element: withSuspense(Faqstable) },
       { path: "add-faqs", element: withSuspense(AddFaqs) },
       { path: "editfaqs/:courseId/:faqId", element: withSuspense(EditCourseFaq) },

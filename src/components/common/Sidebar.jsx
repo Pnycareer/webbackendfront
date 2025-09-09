@@ -52,6 +52,12 @@ const ALL_SIDEBAR_ITEMS = [
         href: "/dashboard/courses",
       },
       {
+        name: "Courses Meta",
+        icon: BookAIcon,
+        color: "#EC4899",
+        href: "/dashboard/add-meta",
+      },
+      {
         name: "Courses Faq's",
         icon: BookAIcon,
         color: "#EC4899",
