@@ -17,6 +17,7 @@ const EditCourse = () => {
     course_Name: "",
     Short_Description: "",
     course_Image: "",
+    course_Image_Alt: "",
     status: " ",
     Admission_Fee: "",
     Brochure: "",
@@ -114,17 +115,17 @@ const EditCourse = () => {
       .replace(/-+/g, "-"); // Replace multiple dashes with single dash
   };
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  const { faqs, ...courseWithoutFaqs } = course;
-  await updateCourse({
-    id,
-    data: courseWithoutFaqs,
-    brochureFile,
-    targetCategoryId,
-    setIsSubmitting,
-  });
-};
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const { faqs, ...courseWithoutFaqs } = course;
+    await updateCourse({
+      id,
+      data: courseWithoutFaqs,
+      brochureFile,
+      targetCategoryId,
+      setIsSubmitting,
+    });
+  };
   // const handleCancel = () => {
   //   navigate("/courses");
   // };
@@ -241,6 +242,18 @@ const handleSubmit = async (e) => {
                 }))
               }
               className="w-full p-2 rounded bg-gray-700 text-white"
+            />
+          </div>
+
+          <div className="mb-4">
+            <label className="block text-gray-300">Image Alt Text</label>
+            <input
+              type="text"
+              name="course_Image_Alt"
+              value={course.course_Image_Alt}
+              onChange={handleChange}
+              className="w-full p-2 rounded bg-gray-700 text-white"
+              placeholder={`Alt for ${course.course_Name || "course image"}`}
             />
           </div>
 

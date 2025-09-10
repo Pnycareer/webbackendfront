@@ -1,6 +1,4 @@
-"use client";
-
-import { useState , useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 
@@ -18,7 +16,6 @@ import useCategories from "@/hooks/useCategories";
 import useInstructors from "@/hooks/useInstructors";
 import { cityOptions, shortcourseOptions } from "@/components/Data/Data";
 import RichTextEditor from "@/components/RichTextEditor/RichTextEditor";
-
 
 export default function AddCourse() {
   const { enqueueSnackbar } = useSnackbar();
@@ -56,6 +53,7 @@ export default function AddCourse() {
       Short_Description: "",
       Meta_Title: "",
       Meta_Description: "",
+      course_Image_Alt: "", // ✅ ADD THIS
     },
     mode: "onSubmit",
   });
@@ -123,14 +121,9 @@ export default function AddCourse() {
     label: i.name,
   }));
 
-
-  
-
   return (
     <>
       <div className="p-4">
-       
-
         <Card className="border border-white/10 bg-black/40 backdrop-blur-xl shadow-2xl max-w-5xl mx-auto">
           <CardHeader>
             <CardTitle className="text-3xl text-gray-100 text-center tracking-tight">
@@ -398,6 +391,16 @@ export default function AddCourse() {
                   accept="image/*"
                   required
                   onChange={(file) => setSelectedCourseImage(file)}
+                />
+
+                <Field
+                  control={form.control}
+                  name="course_Image_Alt"
+                  label="Image Alt Text*"
+                  placeholder={`Alt for ${
+                    form.getValues("course_Name") || "course image"
+                  }`}
+                  rules={{ required: "Image Alt is required" }}
                 />
 
                 {/* Short Description */}

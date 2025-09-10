@@ -41,6 +41,7 @@ const EditBlog = () => {
     canonical: "",
     inviewweb: true,
     showtoc: true, // ✅ Add this
+    blogImageAlt: "",
   });
 
   const [blogImage, setBlogImage] = useState(null);
@@ -76,6 +77,7 @@ const EditBlog = () => {
         canonical: blog.canonical || "",
         inviewweb: blog.inviewweb,
         showtoc: blog.showtoc, // ✅ Add this
+        blogImageAlt: blog.blogImageAlt || "",
       });
       setBlogDescription(blog.blogDescription || "");
 
@@ -186,83 +188,87 @@ const EditBlog = () => {
   //   }
   // };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+ const handleSubmit = async (e) => {
+  e.preventDefault();
 
-    const data = new FormData();
+  const data = new FormData();
 
-    // Convert boolean-like fields from strings to actual booleans
-    const boolKeys = ["showtoc", "inviewweb", "insitemap", "pageindex"];
-    const formattedFormData = { ...formData };
-    boolKeys.forEach((key) => {
-      formattedFormData[key] =
-        formattedFormData[key] === "true" || formattedFormData[key] === true;
-    });
+  // Convert boolean-like fields from strings to actual booleans
+  const boolKeys = ["showtoc", "inviewweb", "insitemap", "pageindex"];
+  const formattedFormData = { ...formData };
+  boolKeys.forEach((key) => {
+    formattedFormData[key] =
+      formattedFormData[key] === "true" || formattedFormData[key] === true;
+  });
 
-    // Append all fields
-    Object.keys(formattedFormData).forEach((key) => {
-      let fieldName = key;
-      const value = formattedFormData[key];
+  // ✅ sanitize / fallback blog image alt
+  const safeAlt =
+    (formattedFormData.blogImageAlt || "").trim() ||
+    `${formattedFormData.blogName || "Blog"} image`;
+  formattedFormData.blogImageAlt = safeAlt.slice(0, 150);
 
-      if (key === "urlSlug") {
-        const finalSlug = value
-          .trim()
-          .toLowerCase()
-          .replace(/[^a-z0-9\s-]/g, "")
-          .replace(/\s+/g, "-")
-          .replace(/-+/g, "-");
-        data.append("url_slug", finalSlug);
-      } else if (typeof value === "string") {
-        data.append(fieldName, value.trim());
-      } else {
-        data.append(fieldName, value);
+  // Append all fields
+  Object.keys(formattedFormData).forEach((key) => {
+    const value = formattedFormData[key];
+
+    if (key === "urlSlug") {
+      const finalSlug = String(value || "")
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, "")
+        .replace(/\s+/g, "-")
+        .replace(/-+/g, "-");
+      data.append("url_slug", finalSlug);
+    } else if (typeof value === "string") {
+      data.append(key, value.trim());
+    } else {
+      data.append(key, value);
+    }
+  });
+
+  // Be explicit about the alt (overrides in case it was appended above)
+  data.set("blogImageAlt", formattedFormData.blogImageAlt);
+
+  // Files
+  if (blogImage) data.append("blogImage", blogImage);
+  if (authorProfileImage) data.append("authorProfileImage", authorProfileImage);
+
+  // Rich text body
+  data.append("blogDescription", (blogDescription || "").trim());
+
+  // Category change tracking
+  data.append("newCategory", formData.blogCategory);
+
+  // Social links
+  const socialLinksObject = {};
+  socialLinks.forEach(({ platform, url }) => {
+    if (platform && url) {
+      socialLinksObject[String(platform).trim()] = String(url).trim();
+    }
+  });
+  data.append("socialLinks", JSON.stringify(socialLinksObject));
+
+  try {
+    const res = await axios.put(
+      `${import.meta.env.VITE_API_URL}/api/blogs/${id}`,
+      data,
+      {
+        headers: { "Content-Type": "multipart/form-data" },
       }
-    });
+    );
 
-    if (blogImage) {
-      data.append("blogImage", blogImage);
-    }
+    toast.success(res.data?.message || "Blog updated successfully!");
+    navigate("/dashboard/all-blogs");
+  } catch (error) {
+    console.error("Failed to update blog:", error);
+    const message =
+      error.response?.data?.message ||
+      "Something went wrong while updating the blog.";
+    toast.error(message);
+  }
+};
 
-    if (authorProfileImage) {
-      data.append("authorProfileImage", authorProfileImage);
-    }
 
-    // Add blogDescription from state
-    data.append("blogDescription", blogDescription.trim());
-
-    // Add newCategory for category change tracking
-    data.append("newCategory", formData.blogCategory);
-
-    // Handle social links
-    const socialLinksObject = {};
-    socialLinks.forEach(({ platform, url }) => {
-      if (platform && url) {
-        socialLinksObject[platform.trim()] = url.trim();
-      }
-    });
-    data.append("socialLinks", JSON.stringify(socialLinksObject));
-
-    try {
-      const res = await axios.put(
-        `${import.meta.env.VITE_API_URL}/api/blogs/${id}`,
-        data,
-        {
-          headers: { "Content-Type": "multipart/form-data" },
-        }
-      );
-
-      toast.success(res.data?.message || "Blog updated successfully!");
-      navigate("/dashboard/all-blogs");
-    } catch (error) {
-      console.error("Failed to update blog:", error);
-      const message =
-        error.response?.data?.message ||
-        "Something went wrong while updating the blog.";
-      toast.error(message);
-    }
-  };
-
-  console.log(formData, "showtoc");
 
   return (
     <div className="w-full mx-auto p-6 overflow-y-auto min-h-screen">
@@ -466,6 +472,20 @@ const EditBlog = () => {
             name="blogImage"
             onChange={handleBlogImageChange}
             className="border p-2 rounded text-white"
+          />
+        </div>
+
+        {/* Blog Image Alt */}
+        <div className="flex flex-col">
+          <label className="font-semibold">Image Alt Text</label>
+          <input
+            type="text"
+            name="blogImageAlt"
+            value={formData.blogImageAlt}
+            onChange={handleChange}
+            placeholder={`Alt for ${formData.blogName || "blog image"}`}
+            className="border p-2 rounded text-black"
+            required
           />
         </div>
 

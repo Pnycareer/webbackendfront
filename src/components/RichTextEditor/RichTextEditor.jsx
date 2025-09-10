@@ -1,7 +1,44 @@
-import React, { useMemo, useRef } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import ReactQuill from "react-quill";
+import Quill from "quill";
 import axios from "axios";
 import "react-quill/dist/quill.snow.css";
+
+// --- Custom Image Blot with alt support ---
+const BaseImageBlot = Quill.import("formats/image");
+
+class ImageWithAltBlot extends BaseImageBlot {
+  static create(value) {
+    const { url, alt } =
+      typeof value === "string" ? { url: value, alt: "" } : value || {};
+    const node = super.create(url);
+    node.setAttribute("src", url || "");
+    if (alt != null) node.setAttribute("alt", alt);
+    return node;
+  }
+  static value(node) {
+    return {
+      url: node.getAttribute("src"),
+      alt: node.getAttribute("alt") || "",
+    };
+  }
+}
+ImageWithAltBlot.blotName = "image";
+ImageWithAltBlot.tagName = "img";
+Quill.register(ImageWithAltBlot, true);
+
+// helper: extract image urls from a Quill Delta
+function getImageUrlsFromDelta(delta) {
+  const urls = new Set();
+  (delta?.ops || []).forEach((op) => {
+    if (op.insert && op.insert.image) {
+      const val = op.insert.image;
+      const url = typeof val === "string" ? val : val?.url;
+      if (url) urls.add(url);
+    }
+  });
+  return urls;
+}
 
 export default function RichTextEditor({
   value,
@@ -10,8 +47,14 @@ export default function RichTextEditor({
   height = 500,
 }) {
   const quillRef = useRef(null);
+  const inputRef = useRef(null);
 
-  // ---- IMAGE UPLOAD (your code, Quill-integrated) ----
+  // track current images + delayed deletions
+  const currentImagesRef = useRef(new Set());
+  const deleteTimersRef = useRef(new Map());
+  const GRACE_MS = 4000; // adjust if you want it more/less aggressive
+
+  // ---- IMAGE UPLOAD (with manual alt) ----
   const handleImageChosen = async (e) => {
     const file = e.target.files?.[0];
     e.target.value = "";
@@ -29,9 +72,10 @@ export default function RichTextEditor({
 
       const url = res?.data?.url;
       if (url) {
+        const alt = window.prompt("Enter alt text for this image:") || "";
         const quill = quillRef.current.getEditor();
         const range = quill.getSelection(true);
-        quill.insertEmbed(range.index, "image", url);
+        quill.insertEmbed(range.index, "image", { url, alt });
         quill.setSelection(range.index + 1, 0);
       }
     } catch (err) {
@@ -40,11 +84,14 @@ export default function RichTextEditor({
   };
 
   const imageHandler = () => {
-    const input = document.createElement("input");
-    input.setAttribute("type", "file");
-    input.setAttribute("accept", "image/*");
-    input.onchange = handleImageChosen;
-    input.click();
+    if (!inputRef.current) {
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = "image/*";
+      input.onchange = handleImageChosen;
+      inputRef.current = input;
+    }
+    inputRef.current.click();
   };
 
   // ---- YOUTUBE INSERT ----
@@ -53,7 +100,6 @@ export default function RichTextEditor({
       const u = new URL(url);
       if (u.hostname === "youtu.be") return u.pathname.slice(1);
       if (u.hostname === "www.youtube.com" || u.hostname === "youtube.com") {
-        // handles https://www.youtube.com/watch?v=ID and share links with extra params
         return u.searchParams.get("v");
       }
       return null;
@@ -63,26 +109,22 @@ export default function RichTextEditor({
   };
 
   const videoHandler = () => {
-    const url = prompt("Paste YouTube video URL:");
+    const url = window.prompt("Paste YouTube video URL:");
     if (!url) return;
 
     const videoId = extractYouTubeId(url);
     if (!videoId) {
-      alert("Invalid YouTube URL");
+      window.alert("Invalid YouTube URL");
       return;
     }
 
     const quill = quillRef.current.getEditor();
     const range = quill.getSelection(true);
-    // Quill understands 'video' embeds — give it the embeddable URL
-    quill.insertEmbed(
-      range.index,
-      "video",
-      `https://www.youtube.com/embed/${videoId}`
-    );
+    quill.insertEmbed(range.index, "video", `https://www.youtube.com/embed/${videoId}`);
     quill.setSelection(range.index + 1, 0);
   };
 
+  // ---- Toolbar / Modules ----
   const modules = useMemo(
     () => ({
       toolbar: {
@@ -91,12 +133,12 @@ export default function RichTextEditor({
           ["bold", "italic", "underline", "strike"],
           [{ list: "ordered" }, { list: "bullet" }],
           ["blockquote", "code-block"],
-          ["link", "image", "video"], // keep both
+          ["link", "image", "video"],
           ["clean"],
         ],
         handlers: {
           image: imageHandler,
-          video: videoHandler, // <- custom YouTube handler
+          video: videoHandler,
         },
       },
       clipboard: { matchVisual: false },
@@ -104,13 +146,66 @@ export default function RichTextEditor({
     []
   );
 
+  // ---- onChange: update your state + diff images
+  const handleEditorChange = (content, delta, source, editor) => {
+    // pass through to parent
+    if (onChange) onChange(content);
+
+    const nowUrls = getImageUrlsFromDelta(editor.getContents());
+    const prevUrls = currentImagesRef.current;
+
+    // cancel pending deletes for any url that reappeared
+    nowUrls.forEach((url) => {
+      const t = deleteTimersRef.current.get(url);
+      if (t) {
+        clearTimeout(t);
+        deleteTimersRef.current.delete(url);
+      }
+    });
+
+    // schedule deletes for any url that disappeared
+    prevUrls.forEach((url) => {
+      if (!nowUrls.has(url) && !deleteTimersRef.current.get(url)) {
+        const timer = setTimeout(async () => {
+          deleteTimersRef.current.delete(url);
+          try {
+            await axios.delete(
+              `${import.meta.env.VITE_API_URL}/upload/upload-editor-image`,
+              { data: { url } } // axios sends body via `data` on DELETE
+            );
+          } catch (err) {
+            console.error("Failed to delete image from server:", err);
+          }
+        }, GRACE_MS);
+        deleteTimersRef.current.set(url, timer);
+      }
+    });
+
+    currentImagesRef.current = nowUrls;
+  };
+
+  // initialize currentImagesRef on mount (so first diff is accurate)
+  useEffect(() => {
+    const quill = quillRef.current?.getEditor?.();
+    if (!quill) return;
+    currentImagesRef.current = getImageUrlsFromDelta(quill.getContents());
+  }, []);
+
+  // cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      deleteTimersRef.current.forEach((t) => clearTimeout(t));
+      deleteTimersRef.current.clear();
+    };
+  }, []);
+
   return (
     <div className="w-full">
       <ReactQuill
         ref={quillRef}
         theme="snow"
         value={value}
-        onChange={onChange}
+        onChange={handleEditorChange}
         placeholder={placeholder}
         modules={modules}
         style={{ height }}
@@ -119,13 +214,9 @@ export default function RichTextEditor({
 
       <style>
         {`
-  .ql-container {
-    min-height: ${height}px;
-  }
-  .ql-editor {
-    min-height: ${height - 50}px;
-  }
-`}
+        .ql-container { min-height: ${height}px; }
+        .ql-editor { min-height: ${height - 50}px; }
+      `}
       </style>
     </div>
   );

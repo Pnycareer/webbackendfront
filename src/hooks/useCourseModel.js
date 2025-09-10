@@ -5,7 +5,7 @@ import { toast } from "react-hot-toast";
 const useCourseModel = () => {
   const fetchCategories = async () => {
     try {
-      const res = await axios.get("/api/v1/categories");
+      const res = await axios.get("/courses/getallcategories/getcategory");
       return res.data;
     } catch (error) {
       console.error("Error fetching categories:", error);

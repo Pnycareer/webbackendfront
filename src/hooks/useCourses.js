@@ -11,92 +11,112 @@ const useCourses = () => {
   const navigate = useNavigate();
   const { enqueueSnackbar } = useSnackbar();
 
-  const addCourse = async ({
-    data,
-    courseDescription,
-    courseImage,
-    brochure,
-    setIsSubmitting,
-  }) => {
-    setIsSubmitting(true);
+ const addCourse = async ({
+  data,
+  courseDescription,
+  courseImage,
+  brochure,
+  setIsSubmitting,
+}) => {
+  setIsSubmitting(true);
 
-    try {
-      Object.keys(data).forEach((key) => {
-        if (typeof data[key] === "string") {
-          data[key] = data[key].trim();
-        }
-      });
-
-      if (data.url_Slug) {
-        data.url_Slug = slugify(data.url_Slug);
+  try {
+    // trim strings
+    Object.keys(data).forEach((key) => {
+      if (typeof data[key] === "string") {
+        data[key] = data[key].trim();
       }
+    });
 
-      const formData = new FormData();
-
-      // Required / always-present fields
-      formData.append("course_Name", data.course_Name);
-      formData.append("url_Slug", data.url_Slug);
-      formData.append("course_Category", data.course_Category);
-      formData.append("category_Description", data.category_Description || "");
-      formData.append("Short_Description", data.Short_Description);
-      formData.append("Course_Description", courseDescription);
-      formData.append("Instructor", data.instructor);
-      formData.append("Meta_Title", data.Meta_Title);
-      formData.append("Meta_Description", data.Meta_Description);
-      formData.append("Status", data.Status);
-      formData.append("View_On_Web", data.View_On_Web);
-      formData.append("showtoc", data.showtoc);
-      formData.append("In_Sitemap", data.In_Sitemap);
-      formData.append("bootcamp", data.bootcamp === "true");
-      formData.append("Page_Index", data.Page_Index);
-      formData.append("Custom_Canonical_Url", data.Custom_Canonical_Url || "");
-
-      if (data.priority !== undefined) {
-        formData.append("priority", data.priority);
-      }
-
-      if (data.Skill_Level) {
-        formData.append("Skill_Level", data.Skill_Level);
-      }
-
-      if (data.video_Id) {
-        formData.append("video_Id", data.video_Id);
-      }
-
-      // ✅ Handle optional number fields safely
-      const optionalFields = [
-        "Monthly_Fee",
-        "Admission_Fee",
-        "Duration_Months",
-        "Duration_Day",
-      ];
-
-      optionalFields.forEach((field) => {
-        if (data[field] !== undefined && data[field] !== null) {
-          formData.append(field, data[field]);
-        }
-      });
-
-      // ✅ Handle files
-      if (courseImage) formData.append("course_Image", courseImage);
-      if (brochure) formData.append("Brochure", brochure);
-
-      await axios.post("/courses/add-course", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-
-      enqueueSnackbar("Course added successfully!", { variant: "success" });
-      navigate("/dashboard/courses");
-    } catch (error) {
-      console.error("Add course error:", error);
-      enqueueSnackbar(
-        error.response?.data?.message || "Something went wrong!",
-        { variant: "error" }
-      );
-    } finally {
-      setIsSubmitting(false);
+    // slugify
+    if (data.url_Slug) {
+      data.url_Slug = slugify(data.url_Slug);
     }
-  };
+
+    // ✅ ensure image alt exists (fallback from course name), clean + cap length
+    if (!data.course_Image_Alt || !data.course_Image_Alt.trim()) {
+      data.course_Image_Alt = `${data.course_Name || "Course"} image`;
+    }
+    data.course_Image_Alt = data.course_Image_Alt.trim().slice(0, 150);
+
+    // ✅ normalize booleans (your backend schema expects real booleans)
+    const toBool = (v) => v === true || v === "true" || v === "yes";
+
+    const formData = new FormData();
+
+    // Required / always-present fields
+    formData.append("course_Name", data.course_Name);
+    formData.append("url_Slug", data.url_Slug);
+    formData.append("course_Category", data.course_Category);
+    formData.append("category_Description", data.category_Description || "");
+    formData.append("Short_Description", data.Short_Description);
+    formData.append("Course_Description", courseDescription);
+    formData.append("Instructor", data.instructor);
+    formData.append("Meta_Title", data.Meta_Title);
+    formData.append("Meta_Description", data.Meta_Description);
+
+    // 🔁 FIX: backend expects lowercase `status`
+    formData.append("status", data.Status);
+
+    // ✅ booleans
+    formData.append("View_On_Web", toBool(data.View_On_Web));
+    formData.append("showtoc", toBool(data.showtoc));
+    formData.append("In_Sitemap", toBool(data.In_Sitemap));
+    formData.append("bootcamp", data.bootcamp === "true");
+    formData.append("Page_Index", toBool(data.Page_Index));
+
+    // Optional fields
+    formData.append("Custom_Canonical_Url", data.Custom_Canonical_Url || "");
+
+    // ✅ send image alt
+    formData.append("course_Image_Alt", data.course_Image_Alt);
+
+    // ✅ normalize priority to number string if present
+    if (data.priority !== undefined && data.priority !== null && data.priority !== "") {
+      formData.append("priority", String(Number(data.priority)));
+    }
+
+    if (data.Skill_Level) {
+      formData.append("Skill_Level", data.Skill_Level);
+    }
+
+    if (data.video_Id) {
+      formData.append("video_Id", data.video_Id);
+    }
+
+    // ✅ optional number fields safely
+    const optionalFields = [
+      "Monthly_Fee",
+      "Admission_Fee",
+      "Duration_Months",
+      "Duration_Day",
+    ];
+    optionalFields.forEach((field) => {
+      if (data[field] !== undefined && data[field] !== null && data[field] !== "") {
+        formData.append(field, data[field]);
+      }
+    });
+
+    // ✅ files
+    if (courseImage) formData.append("course_Image", courseImage);
+    if (brochure) formData.append("Brochure", brochure);
+
+    await axios.post("/courses/add-course", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+
+    enqueueSnackbar("Course added successfully!", { variant: "success" });
+    navigate("/dashboard/courses");
+  } catch (error) {
+    console.error("Add course error:", error);
+    enqueueSnackbar(error.response?.data?.message || "Something went wrong!", {
+      variant: "error",
+    });
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+
 
   const fetchCourses = async () => {
     try {
