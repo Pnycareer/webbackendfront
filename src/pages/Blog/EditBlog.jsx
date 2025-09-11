@@ -9,6 +9,7 @@ import RichTextEditor from "@/components/RichTextEditor/RichTextEditor";
 const categories = [
   { label: "Technology", value: "technology" },
   { label: "Marketing", value: "marketing" },
+  { label: "Business", value: "business" },
   { label: "Software", value: "software" },
   { label: "Education", value: "education" },
   { label: "Short Courses in Islamabad", value: "short-courses-in-islamabad" },

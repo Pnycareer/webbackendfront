@@ -1,28 +1,28 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import axios from "../../utils/axios";
 import { Link } from "react-router-dom";
 
 export default function FaqPostPage() {
   const [category, setCategory] = useState({ name: "", url_slug: "" });
-  const [categories, setCategories] = useState([]);
   const [faqs, setFaqs] = useState([{ question: "", answer: "" }]);
   const [faqImage, setFaqImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const res = await axios.get(`/api/v1/categories`);
-        setCategories(res.data); // axios auto-parses JSON
-      } catch (error) {
-        console.error("Failed to fetch categories:", error);
-      }
-    };
-
-    fetchCategories();
-  }, []);
+  // 🔒 Manual categories (no fetch)
+  const categories = [
+    { _id: "1", Category_Name: "About PNY Trainings", url_Slug: "about-pny-trainings" },
+    { _id: "2", Category_Name: "Courses & Programs", url_Slug: "courses-programs" },
+    { _id: "3", Category_Name: "Online & On-Campus Learning", url_Slug: "online-and-on-campus-learning" },
+    { _id: "4", Category_Name: "Fees & Registration", url_Slug: "fees-and-registration" },
+    { _id: "5", Category_Name: "Certifications & Affiliations", url_Slug: "certifications-and-affiliations" },
+    { _id: "6", Category_Name: "Career, Freelancing & Jobs", url_Slug: "career-freelancing-and-jobs" },
+    { _id: "7", Category_Name: "Special Courses (Trending Skills)", url_Slug: "special-courses-trending-skills" },
+    { _id: "8", Category_Name: "Student Experience & Facilities", url_Slug: "student-experience-and-facilities" },
+    { _id: "9", Category_Name: "Branches & International Presence", url_Slug: "branches-and-international-presence" },
+    { _id: "10", Category_Name: "Why Choose PNY Trainings?", url_Slug: "why-choose-pny-trainings" },
+  ];
 
   const handleChange = (i, key, val) => {
     const updated = [...faqs];
@@ -31,7 +31,7 @@ export default function FaqPostPage() {
   };
 
   const handleImageChange = (e) => {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     if (file) {
       setFaqImage(file);
       setImagePreview(URL.createObjectURL(file));
@@ -49,6 +49,7 @@ export default function FaqPostPage() {
     setDropdownOpen(false);
   };
 
+  // ✅ your original API submit (unchanged)
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -64,17 +65,15 @@ export default function FaqPostPage() {
         },
       });
 
-      // Assuming your backend sends something like: { message: "FAQ posted successfully" }
       alert(res.data.message || "FAQ posted!");
 
       // Reset state after success
       setCategory({ name: "", url_slug: "" });
       setFaqs([{ question: "", answer: "" }]);
       setFaqImage(null);
+      setImagePreview(null);
     } catch (err) {
-      // Grab backend message or default to err.message
-      const errorMessage =
-        err.response?.data?.message || "Something went wrong.";
+      const errorMessage = err.response?.data?.message || "Something went wrong.";
       alert("Error: " + errorMessage);
     }
   };
@@ -89,6 +88,7 @@ export default function FaqPostPage() {
       <h2 className="text-2xl font-bold text-gray-800">Create a FAQ</h2>
 
       <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Category Dropdown */}
         <div className="relative w-full">
           <button
             type="button"
@@ -121,6 +121,7 @@ export default function FaqPostPage() {
           </AnimatePresence>
         </div>
 
+        {/* Image Upload */}
         <div className="grid grid-cols-1 gap-4">
           <label
             htmlFor="faqImage"
@@ -167,6 +168,7 @@ export default function FaqPostPage() {
           </label>
         </div>
 
+        {/* FAQs */}
         {faqs.map((faq, i) => (
           <motion.div
             key={i}
@@ -194,6 +196,7 @@ export default function FaqPostPage() {
           </motion.div>
         ))}
 
+        {/* Actions */}
         <div className="flex flex-col gap-4">
           <button
             type="button"
@@ -211,7 +214,7 @@ export default function FaqPostPage() {
           </button>
           <div className="text-center mt-4">
             <Link
-              to="/dashboard/faqs" // replace with your actual back URL
+              to="/dashboard/faqs"
               className="inline-block px-6 py-2 bg-gray-300 text-black rounded-lg hover:bg-gray-400 transition"
             >
               ← Back
