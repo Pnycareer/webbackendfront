@@ -49,7 +49,7 @@ export default function GetNews() {
       </div>
    
     <div className="min-h-screen w-full px-3">
-      <h1 className="text-4xl font-bold text-center mb-8">
+      <h1 className="text-4xl font-bold text-center mb-8 text-white">
         All News
       </h1>
      

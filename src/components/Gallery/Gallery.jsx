@@ -8,17 +8,17 @@ const GalleryTable = () => {
   const [galleries, setGalleries] = useState([]);
   const [activeCategory, setActiveCategory] = useState(null);
 
- const fetchGalleries = async () => {
-  try {
-    const res = await axios.get(`/api/v1/gallery`);
-    setGalleries(res.data);
-  } catch (err) {
-    console.error("Error fetching galleries:", err);
-    toast.error(
-      err.response?.data?.message || "Failed to load gallery items."
-    ); // Optional toast
-  }
-};
+  const fetchGalleries = async () => {
+    try {
+      const res = await axios.get(`/api/v1/gallery`);
+      setGalleries(res.data);
+    } catch (err) {
+      console.error("Error fetching galleries:", err);
+      toast.error(
+        err.response?.data?.message || "Failed to load gallery items."
+      ); // Optional toast
+    }
+  };
 
   useEffect(() => {
     fetchGalleries();
@@ -28,44 +28,43 @@ const GalleryTable = () => {
     setActiveCategory(activeCategory === categoryId ? null : categoryId);
   };
 
-const handleDeleteImage = async (galleryId, imagePath) => {
-  if (!confirm("Are you sure you want to delete this image?")) return;
+  const handleDeleteImage = async (galleryId, imagePath) => {
+    if (!confirm("Are you sure you want to delete this image?")) return;
 
-  try {
-    const res = await axios.delete(
-      `/api/v1/gallery/${galleryId}/image`,
-      {
+    try {
+      const res = await axios.delete(`/api/v1/gallery/${galleryId}/image`, {
         data: { imagePath },
-      }
-    );
+      });
 
-    toast.success(res.data.message || "Image deleted successfully.");
-    fetchGalleries(); // Refresh the gallery list
-  } catch (error) {
-    const errorMessage =
-      error.response?.data?.message || "Failed to delete image.";
-    toast.error(errorMessage);
-    console.error("Error deleting image:", error);
-  }
-};
+      toast.success(res.data.message || "Image deleted successfully.");
+      fetchGalleries(); // Refresh the gallery list
+    } catch (error) {
+      const errorMessage =
+        error.response?.data?.message || "Failed to delete image.";
+      toast.error(errorMessage);
+      console.error("Error deleting image:", error);
+    }
+  };
 
- const handleDeleteGallery = async (galleryId) => {
-  if (!confirm("Are you sure you want to delete this gallery?")) return;
+  const handleDeleteGallery = async (galleryId) => {
+    if (!confirm("Are you sure you want to delete this gallery?")) return;
 
-  try {
-    const res = await axios.delete(
-      `${import.meta.env.VITE_API_URL}/api/v1/gallery/deletegallaery/${galleryId}`
-    );
+    try {
+      const res = await axios.delete(
+        `${
+          import.meta.env.VITE_API_URL
+        }/api/v1/gallery/deletegallaery/${galleryId}`
+      );
 
-    toast.success(res.data.message || "Gallery deleted successfully.");
-    fetchGalleries(); // Refresh list
-  } catch (error) {
-    const errorMessage =
-      error.response?.data?.message || "Failed to delete gallery.";
-    toast.error(errorMessage);
-    console.error("Error deleting gallery:", error);
-  }
-};
+      toast.success(res.data.message || "Gallery deleted successfully.");
+      fetchGalleries(); // Refresh list
+    } catch (error) {
+      const errorMessage =
+        error.response?.data?.message || "Failed to delete gallery.";
+      toast.error(errorMessage);
+      console.error("Error deleting gallery:", error);
+    }
+  };
 
   return (
     <div className="w-full mx-auto mt-10 p-4 overflow-y-auto min-h-screen">
@@ -77,7 +76,9 @@ const handleDeleteImage = async (galleryId, imagePath) => {
           Add Gallery
         </Link>
       </div>
-      <h2 className="text-3xl font-bold mb-6 text-center">Gallery List</h2>
+      <h2 className="text-3xl font-bold mb-6 text-center text-white">
+        Gallery List
+      </h2>
 
       {galleries.length === 0 ? (
         <div className="text-center">No galleries found.</div>
@@ -144,9 +145,11 @@ const handleDeleteImage = async (galleryId, imagePath) => {
                                 </span>
                               </td>
                               <td className="py-2 px-4">
-                                <button className="text-blue-400 hover:underline mr-4">
-                                  Edit
-                                </button>
+                                <Link to={`/dashboard/editgallery/${gallery._id}`}>
+                                  <button className="text-blue-400 hover:underline mr-4">
+                                    Edit
+                                  </button>
+                                </Link>
                                 <button
                                   className="text-red-400 hover:underline"
                                   onClick={() =>

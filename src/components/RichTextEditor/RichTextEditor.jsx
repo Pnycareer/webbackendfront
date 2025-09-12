@@ -4,7 +4,7 @@ import Quill from "quill";
 import axios from "axios";
 import "react-quill/dist/quill.snow.css";
 
-// --- Custom Image Blot with alt support ---
+/* ---------- Custom Image Blot (alt support) ---------- */
 const BaseImageBlot = Quill.import("formats/image");
 
 class ImageWithAltBlot extends BaseImageBlot {
@@ -27,7 +27,7 @@ ImageWithAltBlot.blotName = "image";
 ImageWithAltBlot.tagName = "img";
 Quill.register(ImageWithAltBlot, true);
 
-// helper: extract image urls from a Quill Delta
+/* ---------- Helpers ---------- */
 function getImageUrlsFromDelta(delta) {
   const urls = new Set();
   (delta?.ops || []).forEach((op) => {
@@ -39,6 +39,13 @@ function getImageUrlsFromDelta(delta) {
   });
   return urls;
 }
+
+// Strip empty <li> and any now-empty <ul>/<ol>
+const stripEmptyLists = (html = "") => {
+  let cleaned = html.replace(/<li>(?:\s|&nbsp;|<br\s*\/?>)*<\/li>/gi, "");
+  cleaned = cleaned.replace(/<(ul|ol)[^>]*>\s*<\/\1>/gi, "");
+  return cleaned;
+};
 
 export default function RichTextEditor({
   value,
@@ -52,9 +59,9 @@ export default function RichTextEditor({
   // track current images + delayed deletions
   const currentImagesRef = useRef(new Set());
   const deleteTimersRef = useRef(new Map());
-  const GRACE_MS = 4000; // adjust if you want it more/less aggressive
+  const GRACE_MS = 4000;
 
-  // ---- IMAGE UPLOAD (with manual alt) ----
+  /* ---------- Image upload (with alt) ---------- */
   const handleImageChosen = async (e) => {
     const file = e.target.files?.[0];
     e.target.value = "";
@@ -94,7 +101,7 @@ export default function RichTextEditor({
     inputRef.current.click();
   };
 
-  // ---- YOUTUBE INSERT ----
+  /* ---------- YouTube insert ---------- */
   const extractYouTubeId = (url) => {
     try {
       const u = new URL(url);
@@ -124,7 +131,39 @@ export default function RichTextEditor({
     quill.setSelection(range.index + 1, 0);
   };
 
-  // ---- Toolbar / Modules ----
+  /* ---------- List handler (NO bullets on empty lines) ---------- */
+  const applyListWithoutEmptyLines = (value) => {
+    const quill = quillRef.current?.getEditor?.();
+    if (!quill) return;
+
+    const range = quill.getSelection(true);
+    if (!range) return;
+
+    const lines = quill.getLines(range.index, range.length || 1);
+
+    lines.forEach((line) => {
+      const lineIndex = quill.getIndex(line);
+      const len = Math.max(line.length(), 1); // include newline
+      // grab plain text of the line
+      const text = quill
+        .getText(lineIndex, len)
+        .replace(/\u200B/g, "") // zero-width space
+        .replace(/\s+/g, " ")
+        .trim();
+
+      if (text.length === 0) {
+        // remove list formatting if line is empty
+        quill.formatLine(lineIndex, len, "list", false);
+      } else {
+        // apply requested list type
+        quill.formatLine(lineIndex, len, "list", value);
+      }
+    });
+
+    quill.setSelection(range.index, range.length, "silent");
+  };
+
+  /* ---------- Toolbar / Modules ---------- */
   const modules = useMemo(
     () => ({
       toolbar: {
@@ -139,6 +178,7 @@ export default function RichTextEditor({
         handlers: {
           image: imageHandler,
           video: videoHandler,
+          list: (value) => applyListWithoutEmptyLines(value), // 👈 override default list handler
         },
       },
       clipboard: { matchVisual: false },
@@ -146,10 +186,10 @@ export default function RichTextEditor({
     []
   );
 
-  // ---- onChange: update your state + diff images
+  /* ---------- onChange: sanitize + image diff ---------- */
   const handleEditorChange = (content, delta, source, editor) => {
-    // pass through to parent
-    if (onChange) onChange(content);
+    const cleaned = stripEmptyLists(content);
+    if (onChange) onChange(cleaned);
 
     const nowUrls = getImageUrlsFromDelta(editor.getContents());
     const prevUrls = currentImagesRef.current;
@@ -171,7 +211,7 @@ export default function RichTextEditor({
           try {
             await axios.delete(
               `${import.meta.env.VITE_API_URL}/upload/upload-editor-image`,
-              { data: { url } } // axios sends body via `data` on DELETE
+              { data: { url } }
             );
           } catch (err) {
             console.error("Failed to delete image from server:", err);
@@ -184,7 +224,7 @@ export default function RichTextEditor({
     currentImagesRef.current = nowUrls;
   };
 
-  // initialize currentImagesRef on mount (so first diff is accurate)
+  // initialize currentImagesRef on mount
   useEffect(() => {
     const quill = quillRef.current?.getEditor?.();
     if (!quill) return;

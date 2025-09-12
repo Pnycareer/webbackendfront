@@ -89,6 +89,12 @@ const ALL_SIDEBAR_ITEMS = [
         color: "#EC4899",
         href: "/dashboard/all-blogs",
       },
+      {
+        name: "Blog Faq's",
+        icon: BookAIcon,
+        color: "#EC4899",
+        href: "/dashboard/blog-faqs",
+      },
     ],
   },
   {

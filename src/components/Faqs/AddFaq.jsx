@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import axios from "../../utils/axios";
 import { Link } from "react-router-dom";
+import RichTextEditor from "../../components/RichTextEditor/RichTextEditor"; // 👈 adjust path if needed
 
 export default function FaqPostPage() {
   const [category, setCategory] = useState({ name: "", url_slug: "" });
@@ -49,20 +50,29 @@ export default function FaqPostPage() {
     setDropdownOpen(false);
   };
 
-  // ✅ your original API submit (unchanged)
+  // helper: strip HTML to validate non-empty rich text
+  const plainText = (html = "") => html.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").trim();
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // basic validation (since ReactQuill can't use "required")
+    const invalid = faqs.some(
+      (f) => !f.question.trim() || plainText(f.answer).length === 0
+    );
+    if (!category?.name || invalid) {
+      alert("Please pick a category and fill all questions/answers.");
+      return;
+    }
+
     const formData = new FormData();
     formData.append("category", JSON.stringify(category));
-    formData.append("faqs", JSON.stringify(faqs));
+    formData.append("faqs", JSON.stringify(faqs)); // answers are HTML strings now
     if (faqImage) formData.append("faqImage", faqImage);
 
     try {
       const res = await axios.post(`/api/v1/faqs`, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
+        headers: { "Content-Type": "multipart/form-data" },
       });
 
       alert(res.data.message || "FAQ posted!");
@@ -128,11 +138,7 @@ export default function FaqPostPage() {
             className="flex flex-col items-center justify-center w-full h-40 p-6 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-white hover:border-blue-500 hover:bg-blue-50 transition-all relative overflow-hidden"
           >
             {imagePreview ? (
-              <img
-                src={imagePreview}
-                alt="Preview"
-                className="object-contain h-full w-full"
-              />
+              <img src={imagePreview} alt="Preview" className="object-contain h-full w-full" />
             ) : (
               <>
                 <svg
@@ -142,29 +148,16 @@ export default function FaqPostPage() {
                   strokeWidth={2}
                   viewBox="0 0 24 24"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M7 16V4a1 1 0 011-1h8a1 1 0 011 1v12m-5 4v-4m-4 4h8"
-                  />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M7 16V4a1 1 0 011-1h8a1 1 0 011 1v12m-5 4v-4m-4 4h8" />
                 </svg>
                 <p className="text-sm text-gray-500">
-                  <span className="font-semibold">Click to upload</span> or drag
-                  & drop
+                  <span className="font-semibold">Click to upload</span> or drag & drop
                 </p>
-                <p className="text-xs text-gray-400 mt-1">
-                  PNG, JPG, JPEG up to 5MB
-                </p>
+                <p className="text-xs text-gray-400 mt-1">PNG, JPG, JPEG up to 5MB</p>
               </>
             )}
 
-            <input
-              id="faqImage"
-              type="file"
-              onChange={handleImageChange}
-              accept="image/*"
-              className="hidden"
-            />
+            <input id="faqImage" type="file" onChange={handleImageChange} accept="image/*" className="hidden" />
           </label>
         </div>
 
@@ -175,48 +168,42 @@ export default function FaqPostPage() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.1 }}
-            className="border p-4 rounded-lg text-black"
+            className="border p-4 rounded-lg text-black space-y-3"
           >
             <input
               type="text"
               placeholder="Question"
               value={faq.question}
               onChange={(e) => handleChange(i, "question", e.target.value)}
-              className="w-full mb-2 p-2 border border-gray-300 rounded"
-              required
-            />
-            <textarea
-              placeholder="Answer"
-              value={faq.answer}
-              onChange={(e) => handleChange(i, "answer", e.target.value)}
               className="w-full p-2 border border-gray-300 rounded"
-              rows="3"
               required
             />
+
+            {/* 👇 replace textarea with your RichTextEditor */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Answer</label>
+              <RichTextEditor
+                value={faq.answer}                         // HTML string
+                onChange={(html) => handleChange(i, "answer", html)}
+                placeholder="Write the answer…"
+                height={280}
+              />
+            </div>
           </motion.div>
         ))}
 
         {/* Actions */}
         <div className="flex flex-col gap-4">
-          <button
-            type="button"
-            onClick={addFaq}
-            className="text-blue-600 underline mt-2"
-          >
+          <button type="button" onClick={addFaq} className="text-blue-600 underline mt-2">
             + Add another FAQ
           </button>
 
-          <button
-            type="submit"
-            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-all"
-          >
+          <button type="submit" className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-all">
             Submit FAQ
           </button>
+
           <div className="text-center mt-4">
-            <Link
-              to="/dashboard/faqs"
-              className="inline-block px-6 py-2 bg-gray-300 text-black rounded-lg hover:bg-gray-400 transition"
-            >
+            <Link to="/dashboard/faqs" className="inline-block px-6 py-2 bg-gray-300 text-black rounded-lg hover:bg-gray-400 transition">
               ← Back
             </Link>
           </div>

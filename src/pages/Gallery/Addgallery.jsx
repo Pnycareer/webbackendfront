@@ -58,7 +58,7 @@ const handleSubmit = async (e) => {
 
   return (
     <div className="w-full mx-auto p-8  shadow-md rounded-md mt-10 overflow-y-auto min-h-screen">
-      <h2 className="text-2xl font-bold mb-6 text-center">
+      <h2 className="text-2xl font-bold mb-6 text-center text-white">
         Create New Gallery
       </h2>
       <form onSubmit={handleSubmit} className="space-y-6">

@@ -19,6 +19,9 @@ const EditCourse = lazy(() => import("../courses/Getcourse/EditCourse"));
 const Faqstable = lazy(() => import("../../pages/CoursesFaq/FaqsTable"));
 const AddFaqs = lazy(() => import("../../pages/CoursesFaq/AddFaqs"));
 const EditCourseFaq = lazy(() => import("../../pages/CoursesFaq/EditCourseFaq"));
+const AddBlogFaqs = lazy(() => import("../../pages/blogfaqs/AddBlogFaqs"));
+const Blogfaqstable = lazy(() => import("../../pages/blogfaqs/BlogFaqsTable"));
+const EditBlogFaq = lazy(() => import("../../pages/blogfaqs/EditBlogFaq"));
 const CourseModulesTable = lazy(() => import("../../pages/CourseModel/ModelCourse"));
 const EditModel = lazy(() => import("../../pages/CourseModel/EditModel"));
 const AddModel = lazy(() => import("../../pages/CourseModel/AddModel"));
@@ -39,6 +42,7 @@ const EditFaq = lazy(() => import("../Faqs/Editfaq"));
 const FaqPostPage = lazy(() => import("../Faqs/AddFaq"));
 const GalleryForm = lazy(() => import("../../pages/Gallery/Addgallery"));
 const GalleryTable = lazy(() => import("../Gallery/Gallery"));
+const Editgallery = lazy(() => import("../../pages/Gallery/EditGallery"));
 const Gettermsandcondition = lazy(() => import("../../pages/Termsandconditions/Addtermsandconditions"));
 const Privacypolicy = lazy(() => import("../../pages/Privacypolicy/Privacypolicy"));
 const GetNews = lazy(() => import("../News/GetNews"));
@@ -121,6 +125,9 @@ const router = createBrowserRouter([
       { path: "addcoursemodel", element: withSuspense(AddModel) },
 
       { path: "all-blogs", element: withSuspense(Allblogs) },
+      { path: "add-blog-faqs", element: withSuspense(AddBlogFaqs) },
+      { path: "edit-blog-faq/:blogId/:faqId", element: withSuspense(EditBlogFaq) },
+      { path: "blog-faqs", element: withSuspense(Blogfaqstable) },
       { path: "blog-post", element: withSuspense(Blog) },
       { path: "editblog/:id", element: withSuspense(EditBlog) },
 
@@ -140,6 +147,7 @@ const router = createBrowserRouter([
       { path: "addfaqs", element: withSuspense(FaqPostPage) },
 
       { path: "gallery", element: withSuspense(GalleryTable) },
+      { path: "editgallery/:id", element: withSuspense(Editgallery) },
       { path: "addgallery", element: withSuspense(GalleryForm) },
 
       { path: "termsandconditions", element: withSuspense(Gettermsandcondition) },

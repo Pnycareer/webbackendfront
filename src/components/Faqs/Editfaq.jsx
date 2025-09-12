@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import axios from '../../utils/axios';
+import RichTextEditor from '../../components/RichTextEditor/RichTextEditor'; // 👈 add this import
 
 const EditFaq = () => {
   const { id } = useParams();
@@ -11,22 +12,22 @@ const EditFaq = () => {
   const [previewImage, setPreviewImage] = useState('');
   const [faqs, setFaqs] = useState([]);
 
-useEffect(() => {
-  const fetchFaqDetails = async () => {
-    try {
-      const res = await axios.get(`/api/v1/faqs/${id}`);
-      const data = res.data;
+  useEffect(() => {
+    const fetchFaqDetails = async () => {
+      try {
+        const res = await axios.get(`/api/v1/faqs/${id}`);
+        const data = res.data;
 
-      setCategoryName(data.category.name);
-      setPreviewImage(`${import.meta.env.VITE_API_URL}/${data.category.category_image}`);
-      setFaqs(data.faqs);
-    } catch (err) {
-      console.error("Failed to fetch FAQ details:", err);
-    }
-  };
+        setCategoryName(data.category.name);
+        setPreviewImage(`${import.meta.env.VITE_API_URL}/${data.category.category_image}`);
+        setFaqs(Array.isArray(data.faqs) ? data.faqs : []);
+      } catch (err) {
+        console.error("Failed to fetch FAQ details:", err);
+      }
+    };
 
-  if (id) fetchFaqDetails();
-}, [id]);
+    if (id) fetchFaqDetails();
+  }, [id]);
 
   const handleFaqChange = (index, field, value) => {
     const updatedFaqs = [...faqs];
@@ -44,34 +45,41 @@ useEffect(() => {
     setFaqs(updatedFaqs);
   };
 
+  // 👇 helper: validate rich text isn't just empty tags/nbsp
+  const plainText = (html = "") =>
+    html.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").trim();
+
   const handleSubmit = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  const formData = new FormData();
-  formData.append('category', JSON.stringify({ name: categoryName }));
-  formData.append('faqs', JSON.stringify(faqs));
-  if (categoryImage) {
-    formData.append('faqImage', categoryImage);
-  }
+    // 👇 validate questions + rich answers
+    const invalid = faqs.some(f => !f.question?.trim() || plainText(f.answer).length === 0);
+    if (invalid) {
+      toast.error("Please fill all questions and answers.");
+      return;
+    }
 
-  try {
-    const res = await axios.put(
-      `/api/v1/faqs/${id}`,
-      formData,
-      {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      }
-    );
+    const formData = new FormData();
+    formData.append('category', JSON.stringify({ name: categoryName }));
+    formData.append('faqs', JSON.stringify(faqs)); // answers are HTML strings
+    if (categoryImage) {
+      formData.append('faqImage', categoryImage);
+    }
 
-    toast.success(res.data.message || "FAQ updated!");
-    navigate("/dashboard/faqs");
-  } catch (err) {
-    const errorMessage = err.response?.data?.message || "Failed to update FAQ";
-    toast.error(errorMessage);
-  }
-};
+    try {
+      const res = await axios.put(
+        `/api/v1/faqs/${id}`,
+        formData,
+        { headers: { "Content-Type": "multipart/form-data" } }
+      );
+
+      toast.success(res.data.message || "FAQ updated!");
+      navigate("/dashboard/faqs");
+    } catch (err) {
+      const errorMessage = err.response?.data?.message || "Failed to update FAQ";
+      toast.error(errorMessage);
+    }
+  };
 
   return (
     <div className="min-h-screen w-full mx-auto overflow-y-auto bg-gray-100 py-8 px-4 sm:px-8">
@@ -112,22 +120,27 @@ useEffect(() => {
           {/* FAQs */}
           <h3 className="text-lg font-semibold text-gray-700 mb-2">FAQs</h3>
           {faqs.map((faq, index) => (
-            <div key={index} className="mb-4 border border-gray-300 rounded-md p-4 bg-gray-50">
+            <div key={faq._id || index} className="mb-4 border border-gray-300 rounded-md p-4 bg-gray-50 space-y-3">
               <input
                 type="text"
                 placeholder="Question"
-                value={faq.question}
+                value={faq.question || ""}
                 onChange={(e) => handleFaqChange(index, 'question', e.target.value)}
                 required
-                className="w-full mb-2 px-3 py-2 border rounded-md text-black focus:outline-none focus:ring-2 focus:ring-blue-400"
+                className="w-full px-3 py-2 border rounded-md text-black focus:outline-none focus:ring-2 focus:ring-blue-400"
               />
-              <textarea
-                placeholder="Answer"
-                value={faq.answer}
-                onChange={(e) => handleFaqChange(index, 'answer', e.target.value)}
-                required
-                className="w-full px-3 py-2 border rounded-md text-black resize-none h-24 focus:outline-none focus:ring-2 focus:ring-blue-400"
-              />
+
+              {/* 👇 RichTextEditor instead of <textarea> */}
+              <div>
+                <label className="block mb-1 font-medium text-gray-700">Answer</label>
+                <RichTextEditor
+                  value={faq.answer || ""} // HTML string
+                  onChange={(html) => handleFaqChange(index, 'answer', html)}
+                  placeholder="Write the answer…"
+                  height={280}
+                />
+              </div>
+
               <button
                 type="button"
                 onClick={() => removeFaq(index)}
