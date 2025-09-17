@@ -51,7 +51,7 @@ const EditEflyers = () => {
     }
 
     try {
-      await axios.put(`http://localhost:8080/api/eflyer/${id}`, data, {
+      await axios.put(`/api/eflyer/${id}`, data, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       toast.success('Eflyer updated');
