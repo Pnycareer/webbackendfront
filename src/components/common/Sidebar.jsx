@@ -181,6 +181,12 @@ const ALL_SIDEBAR_ITEMS = [
         color: "#3B82F6",
         href: "/dashboard/news",
       },
+      {
+        name: "Home Content",
+        icon: TrendingUp,
+        color: "#3B82F6",
+        href: "/dashboard/home-content",
+      },
     ],
   },
 ];

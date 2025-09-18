@@ -9,6 +9,8 @@ import AuthLock from "../../pages/AuthLock";
 import ContactData from "@/pages/ContactData/ContactData";
 import CourseCategoryMeta from "../Meta/CourseCategoryMeta";
 
+
+
 const Webbanner = lazy(() => import("../../pages/Webbanner"));
 const CategoryTable = lazy(() => import("../category/CategoryTable"));
 const AddCategory = lazy(() => import("../../pages/Category/AddCate"));
@@ -48,6 +50,8 @@ const Privacypolicy = lazy(() => import("../../pages/Privacypolicy/Privacypolicy
 const GetNews = lazy(() => import("../News/GetNews"));
 const Editnews = lazy(() => import("../News/Edit"));
 const CreateNews = lazy(() => import("../../pages/News/Addnews"));
+const HomeContent = lazy(() => import("../../pages/HomeContent/HomeContent"));
+
 
 
 
@@ -109,6 +113,7 @@ const router = createBrowserRouter([
         ),
       },
 
+      { path: "home-content", element: withSuspense(HomeContent) },
       { path: "add-categories", element: withSuspense(AddCategory) },
       { path: "edit-category/:id", element: withSuspense(EditCategory) },
 
