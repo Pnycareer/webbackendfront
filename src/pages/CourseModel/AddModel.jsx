@@ -119,7 +119,7 @@ const AddModel = () => {
                 <option value="">-- Choose Category --</option>
                 {categories.map((cat) => (
                   <option key={cat.slug} value={cat.url_Slug}>
-                    {cat.Category_Name}
+                    {cat.category_Name}
                   </option>
                 ))}
               </select>
