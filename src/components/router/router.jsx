@@ -51,6 +51,9 @@ const GetNews = lazy(() => import("../News/GetNews"));
 const Editnews = lazy(() => import("../News/Edit"));
 const CreateNews = lazy(() => import("../../pages/News/Addnews"));
 const HomeContent = lazy(() => import("../../pages/HomeContent/HomeContent"));
+const AddacademiaCourses = lazy(() => import("../../pages/Academia/Courses/AddacademiaCourses"));
+const AcademiaCourses = lazy(() => import("../../pages/Academia/Courses/AcademiaCourses"));
+const EditAcademiaCourses = lazy(() => import("../../pages/Academia/Courses/EditAcademiaCourse"));
 
 
 
@@ -124,6 +127,10 @@ const router = createBrowserRouter([
       { path: "editfaqs/:courseId/:faqId", element: withSuspense(EditCourseFaq) },
       { path: "addcourse", element: withSuspense(AddCourse) },
       { path: "editcourse/:id", element: withSuspense(EditCourse) },
+
+      { path: "add-academia-courses", element: withSuspense(AddacademiaCourses) },
+      { path: "academia-courses", element: withSuspense(AcademiaCourses) },
+      { path: "editacademiacourse/:idOrSlug", element: withSuspense(EditAcademiaCourses) },
 
       { path: "coursemodel", element: withSuspense(CourseModulesTable) },
       { path: "editmodel/:id", element: withSuspense(EditModel) },

@@ -95,7 +95,7 @@ export default function HomeContent() {
           {/* Intro */}
           <div className="space-y-2">
             <Label>Intro</Label>
-            <RichTextEditor value={intro} onChange={setIntro} height={220} placeholder="Intro…" />
+            <RichTextEditor value={intro} onChange={setIntro} height={400} placeholder="Intro…" />
           </div>
 
           <Separator />
@@ -106,7 +106,7 @@ export default function HomeContent() {
             <RichTextEditor
               value={extraContent}
               onChange={setExtraContent}
-              height={420}
+              height={400}
               placeholder="Write the detailed content…"
             />
           </div>

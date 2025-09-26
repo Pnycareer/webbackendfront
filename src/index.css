@@ -10,7 +10,9 @@
   } */
 
 
-
+body {
+  overflow: hidden;
+}
 
 
 @layer base {
@@ -182,17 +184,17 @@
 
 
 
-/* force white bg for toolbar + editor */
-.ql-toolbar, .ql-container { background: #fff !important; }
+
+/* .ql-toolbar, .ql-container { background: #fff !important; }
 .ql-toolbar, .ql-container { border: 1px solid #e5e7eb; }
 
-/* let editor body scroll fully beneath a fixed height */
+
 .ql-container { height: calc(100% - 0px); }
 .ql-editor {
-  min-height: calc(300px - 56px); /* tweak based on your height/toolbar */
+  min-height: calc(300px - 56px); 
   max-height: calc(300px - 56px);
   overflow-y: auto;
-}
+} */
 
 
 

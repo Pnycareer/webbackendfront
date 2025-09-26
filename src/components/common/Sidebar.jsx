@@ -72,6 +72,21 @@ const ALL_SIDEBAR_ITEMS = [
     ],
   },
   {
+    name: "Academia",
+    icon: BookAIcon,
+    color: "#EC4899",
+    href: "#",
+    dropdown: [
+      {
+        name: "Courses",
+        icon: BiCategory,
+        color: "#8B5CF6",
+        href: "/dashboard/academia-courses",
+      },
+      
+    ],
+  },
+  {
     name: "Blog",
     icon: TbWriting,
     color: "#EC4899",
