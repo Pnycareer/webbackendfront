@@ -27,11 +27,21 @@ import {
   CommandGroup,
   CommandItem,
 } from "@/components/ui/command";
-import { ChevronsUpDown } from "lucide-react";
+import { ChevronsUpDown, X } from "lucide-react";
 
 // rich text + data
 import RichTextEditor from "@/components/RichTextEditor/RichTextEditor";
 import useInstructors from "@/hooks/useInstructors";
+
+// tiny pill for subjects
+const Pill = ({ children, onRemove }) => (
+  <span className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm border">
+    {children}
+    <button type="button" onClick={onRemove} className="opacity-60 hover:opacity-100">
+      <X className="h-3 w-3" />
+    </button>
+  </span>
+);
 
 const EditAcademiaCourse = ({ idOrSlug: idOrSlugProp }) => {
   const params = useParams();
@@ -58,6 +68,11 @@ const EditAcademiaCourse = ({ idOrSlug: idOrSlugProp }) => {
     Meta_Description: ""
   });
 
+  // NEW: Subjects + FAQs
+  const [subjects, setSubjects] = useState([]); // ["maths","physics"]
+  const [subjectInput, setSubjectInput] = useState("");
+  const [faqs, setFaqs] = useState([]); // [{question, answer}]
+
   const [courseImageFile, setCourseImageFile] = useState(null);
   const [brochureFile, setBrochureFile] = useState(null);
 
@@ -71,11 +86,40 @@ const EditAcademiaCourse = ({ idOrSlug: idOrSlugProp }) => {
     instructors?.find((i) => (i?._id || i?.id) === form.Instructor) || null;
 
   // absolute URL builder for files served by your API
-  const fileUrl = useMemo(() => {           
+  const fileUrl = useMemo(() => {
     const base = (typeof window !== "undefined" ? import.meta.env.VITE_API_URL : "") || "";
     const norm = (p) => (p ? p.replace(/^\/+/, "") : "");
     return (p) => (p ? `${base.replace(/\/$/, "")}/${norm(p)}` : "");
   }, []);
+
+  // helpers: subjects / faqs
+  const pushSubjectsFromString = (raw) => {
+    const parts = String(raw || "")
+      .split(/[,\n]/)
+      .map((v) => v.trim().toLowerCase())
+      .filter(Boolean);
+    if (!parts.length) return;
+    setSubjects((prev) => {
+      const set = new Set(prev);
+      parts.forEach((p) => set.add(p));
+      return Array.from(set);
+    });
+  };
+  const onSubjectKeyDown = (e) => {
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault();
+      if (subjectInput.trim()) {
+        pushSubjectsFromString(subjectInput);
+        setSubjectInput("");
+      }
+    }
+  };
+  const removeSubject = (value) => setSubjects((prev) => prev.filter((s) => s !== value));
+
+  const addFaq = () => setFaqs((s) => [...s, { question: "", answer: "" }]);
+  const removeFaq = (idx) => setFaqs((s) => s.filter((_, i) => i !== idx));
+  const updateFaq = (idx, key, value) =>
+    setFaqs((s) => s.map((f, i) => (i === idx ? { ...f, [key]: value } : f)));
 
   // fetch course
   useEffect(() => {
@@ -103,6 +147,13 @@ const EditAcademiaCourse = ({ idOrSlug: idOrSlugProp }) => {
           Meta_Title: d.Meta_Title || "",
           Meta_Description: d.Meta_Description || "",
         });
+
+        // NEW: prefill subjects + faqs (backend returns arrays)
+        setSubjects(Array.isArray(d.subjects) ? d.subjects.map((s) => String(s).toLowerCase()) : []);
+        setFaqs(Array.isArray(d.faqs) ? d.faqs.map((f) => ({
+          question: String(f?.question || ""),
+          answer: String(f?.answer || ""),
+        })) : []);
 
         setCurrentImage(d.course_Image || null);
         setCurrentBrochure(d.Brochure || null);
@@ -138,10 +189,20 @@ const EditAcademiaCourse = ({ idOrSlug: idOrSlugProp }) => {
       return;
     }
 
+    // Clean FAQs: only send valid rows
+    const faqsClean = faqs
+      .map((f) => ({ question: (f.question || "").trim(), answer: (f.answer || "").trim() }))
+      .filter((f) => f.question && f.answer);
+
     const fd = new FormData();
     Object.entries(form).forEach(([k, v]) => {
       if (v !== undefined && v !== null && v !== "") fd.append(k, v);
     });
+
+    // NEW: send subjects & faqs as JSON strings (backend supports JSON/CSV/arrays)
+    fd.append("subjects", JSON.stringify(subjects || []));
+    fd.append("faqs", JSON.stringify(faqsClean || []));
+
     if (courseImageFile) fd.append("course_Image", courseImageFile);
     if (brochureFile) fd.append("Brochure", brochureFile);
 
@@ -298,6 +359,22 @@ const EditAcademiaCourse = ({ idOrSlug: idOrSlugProp }) => {
               </Select>
             </div>
 
+            {/* NEW: Subjects */}
+            <div className="space-y-2">
+              <Label>Subjects (press Enter or comma to add)</Label>
+              <Input
+                placeholder="maths, physics, computer"
+                value={subjectInput}
+                onChange={(e) => setSubjectInput(e.target.value)}
+                onKeyDown={onSubjectKeyDown}
+              />
+              <div className="flex flex-wrap gap-2">
+                {subjects.length ? subjects.map((s) => (
+                  <Pill key={s} onRemove={() => removeSubject(s)}>{s}</Pill>
+                )) : <p className="text-sm text-muted-foreground">No subjects yet.</p>}
+              </div>
+            </div>
+
             {/* short description rich text */}
             <div className="space-y-2">
               <Label>Short Description</Label>
@@ -318,6 +395,47 @@ const EditAcademiaCourse = ({ idOrSlug: idOrSlugProp }) => {
                 placeholder="Full course details…"
                 height={400}
               />
+            </div>
+
+            {/* NEW: FAQs */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label>FAQs</Label>
+                <Button type="button" variant="outline" onClick={addFaq}>Add FAQ</Button>
+              </div>
+              {faqs.length === 0 && (
+                <p className="text-sm text-muted-foreground">No FAQs yet. Click “Add FAQ”.</p>
+              )}
+              <div className="space-y-4">
+                {faqs.map((f, idx) => (
+                  <div key={idx} className="rounded-2xl border p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">FAQ #{idx + 1}</span>
+                      <Button type="button" variant="ghost" size="sm" onClick={() => removeFaq(idx)}>
+                        Remove
+                      </Button>
+                    </div>
+                    <div className="grid gap-3">
+                      <div>
+                        <Label>Question *</Label>
+                        <Input
+                          value={f.question}
+                          onChange={(e) => updateFaq(idx, "question", e.target.value)}
+                          placeholder="Do I need prior coding experience?"
+                        />
+                      </div>
+                      <div>
+                        <Label>Answer *</Label>
+                        <Input
+                          value={f.answer}
+                          onChange={(e) => updateFaq(idx, "answer", e.target.value)}
+                          placeholder="No, we start from basics."
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* alt / meta */}
