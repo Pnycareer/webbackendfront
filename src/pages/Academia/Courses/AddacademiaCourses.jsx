@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 // shadcn/ui imports
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -12,7 +12,7 @@ import {
   SelectContent,
   SelectItem
 } from "@/components/ui/select";
-// shadcn combobox primitives
+// combobox primitives
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import {
   Command,
@@ -22,10 +22,20 @@ import {
   CommandGroup,
   CommandItem,
 } from "@/components/ui/command";
-import { ChevronsUpDown } from "lucide-react";
+import { ChevronsUpDown, X } from "lucide-react";
 import RichTextEditor from "@/components/RichTextEditor/RichTextEditor";
 import useInstructors from "@/hooks/useInstructors";
 import api from "@/utils/axios";
+
+// tiny pill for subjects
+const Pill = ({ children, onRemove }) => (
+  <span className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm border">
+    {children}
+    <button type="button" onClick={onRemove} className="opacity-60 hover:opacity-100">
+      <X className="h-3 w-3" />
+    </button>
+  </span>
+);
 
 const AddacademiaCourses = () => {
   const [busy, setBusy] = useState(false);
@@ -48,6 +58,11 @@ const AddacademiaCourses = () => {
     Meta_Description: ""
   });
 
+  // NEW: Subjects + FAQs state (same as Edit)
+  const [subjects, setSubjects] = useState([]);     // ["maths","physics"]
+  const [subjectInput, setSubjectInput] = useState("");
+  const [faqs, setFaqs] = useState([]);             // [{question, answer}]
+
   const [courseImageFile, setCourseImageFile] = useState(null);
   const [brochureFile, setBrochureFile] = useState(null);
 
@@ -56,6 +71,36 @@ const AddacademiaCourses = () => {
   const [instructorOpen, setInstructorOpen] = useState(false);
   const selectedInstructor =
     instructors?.find((i) => (i?._id || i?.id) === form.Instructor) || null;
+
+  // helpers: subjects (parity with Edit)
+  const pushSubjectsFromString = (raw) => {
+    const parts = String(raw || "")
+      .split(/[,\n]/)
+      .map((v) => v.trim().toLowerCase())
+      .filter(Boolean);
+    if (!parts.length) return;
+    setSubjects((prev) => {
+      const set = new Set(prev);
+      parts.forEach((p) => set.add(p));
+      return Array.from(set);
+    });
+  };
+  const onSubjectKeyDown = (e) => {
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault();
+      if (subjectInput.trim()) {
+        pushSubjectsFromString(subjectInput);
+        setSubjectInput("");
+      }
+    }
+  };
+  const removeSubject = (value) => setSubjects((prev) => prev.filter((s) => s !== value));
+
+  // helpers: faqs (parity with Edit)
+  const addFaq = () => setFaqs((s) => [...s, { question: "", answer: "" }]);
+  const removeFaq = (idx) => setFaqs((s) => s.filter((_, i) => i !== idx));
+  const updateFaq = (idx, key, value) =>
+    setFaqs((s) => s.map((f, i) => (i === idx ? { ...f, [key]: value } : f)));
 
   const onChange = (e) => {
     const { name, value } = e.target;
@@ -79,10 +124,20 @@ const AddacademiaCourses = () => {
       return;
     }
 
+    // Clean FAQs before sending (same as Edit)
+    const faqsClean = faqs
+      .map((f) => ({ question: (f.question || "").trim(), answer: (f.answer || "").trim() }))
+      .filter((f) => f.question && f.answer);
+
     const fd = new FormData();
     Object.entries(form).forEach(([k, v]) => {
       if (v !== undefined && v !== null && v !== "") fd.append(k, v);
     });
+
+    // NEW: send subjects & faqs as JSON strings
+    fd.append("subjects", JSON.stringify(subjects || []));
+    fd.append("faqs", JSON.stringify(faqsClean || []));
+
     if (courseImageFile) fd.append("course_Image", courseImageFile);
     if (brochureFile) fd.append("Brochure", brochureFile);
 
@@ -90,6 +145,8 @@ const AddacademiaCourses = () => {
       setBusy(true);
       await api.post("/api/academia/courses", fd);
       setMsg({ type: "success", text: "Course created ✅" });
+
+      // reset
       setForm({
         coursename: "",
         slug: "",
@@ -106,6 +163,9 @@ const AddacademiaCourses = () => {
         Meta_Title: "",
         Meta_Description: ""
       });
+      setSubjects([]);
+      setSubjectInput("");
+      setFaqs([]);
       setCourseImageFile(null);
       setBrochureFile(null);
     } catch (err) {
@@ -210,7 +270,9 @@ const AddacademiaCourses = () => {
                   </Command>
                 </PopoverContent>
               </Popover>
-              
+              {form.Instructor ? (
+                <p className="text-xs text-muted-foreground">Selected ID: {form.Instructor}</p>
+              ) : null}
             </div>
 
             {/* priority */}
@@ -220,6 +282,7 @@ const AddacademiaCourses = () => {
                 id="priority"
                 name="priority"
                 type="number"
+                step="0.1"
                 value={form.priority}
                 onChange={onChange}
               />
@@ -242,6 +305,22 @@ const AddacademiaCourses = () => {
               </Select>
             </div>
 
+            {/* NEW: Subjects */}
+            <div className="space-y-2">
+              <Label>Subjects (press Enter or comma to add)</Label>
+              <Input
+                placeholder="maths, physics, computer"
+                value={subjectInput}
+                onChange={(e) => setSubjectInput(e.target.value)}
+                onKeyDown={onSubjectKeyDown}
+              />
+              <div className="flex flex-wrap gap-2">
+                {subjects.length ? subjects.map((s) => (
+                  <Pill key={s} onRemove={() => removeSubject(s)}>{s}</Pill>
+                )) : <p className="text-sm text-muted-foreground">No subjects yet.</p>}
+              </div>
+            </div>
+
             {/* short description rich text */}
             <div className="space-y-2">
               <Label>Short Description</Label>
@@ -262,6 +341,47 @@ const AddacademiaCourses = () => {
                 placeholder="Full course details…"
                 height={400}
               />
+            </div>
+
+            {/* NEW: FAQs */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label>FAQs</Label>
+                <Button type="button" variant="outline" onClick={addFaq}>Add FAQ</Button>
+              </div>
+              {faqs.length === 0 && (
+                <p className="text-sm text-muted-foreground">No FAQs yet. Click “Add FAQ”.</p>
+              )}
+              <div className="space-y-4">
+                {faqs.map((f, idx) => (
+                  <div key={idx} className="rounded-2xl border p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">FAQ #{idx + 1}</span>
+                      <Button type="button" variant="ghost" size="sm" onClick={() => removeFaq(idx)}>
+                        Remove
+                      </Button>
+                    </div>
+                    <div className="grid gap-3">
+                      <div>
+                        <Label>Question *</Label>
+                        <Input
+                          value={f.question}
+                          onChange={(e) => updateFaq(idx, "question", e.target.value)}
+                          placeholder="Do I need prior coding experience?"
+                        />
+                      </div>
+                      <div>
+                        <Label>Answer *</Label>
+                        <Input
+                          value={f.answer}
+                          onChange={(e) => updateFaq(idx, "answer", e.target.value)}
+                          placeholder="No, we start from basics."
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* alt / meta */}
