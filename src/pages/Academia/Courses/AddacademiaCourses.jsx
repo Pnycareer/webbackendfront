@@ -508,5 +508,5 @@ const AddacademiaCourses = () => {
     </div>
   );
 };
-
+  
 export default AddacademiaCourses;
