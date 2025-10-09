@@ -145,6 +145,12 @@ const ALL_SIDEBAR_ITEMS = [
     href: "/dashboard/contact-data",
   },
   {
+    name: "Spinner Data",
+    icon: MdFolderSpecial,
+    color: "#F59E0B",
+    href: "/dashboard/spinner",
+  },
+  {
     name: "Faqs",
     icon: FaQq,
     color: "#F59E0B",

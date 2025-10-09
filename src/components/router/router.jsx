@@ -8,6 +8,7 @@ import AccessDenied from "../../pages/AccessDenied/Accessdenied";
 import AuthLock from "../../pages/AuthLock";
 import ContactData from "@/pages/ContactData/ContactData";
 import CourseCategoryMeta from "../Meta/CourseCategoryMeta";
+import SpinnerData from "@/pages/Spinner/SpinnerData";
 
 
 
@@ -153,6 +154,7 @@ const router = createBrowserRouter([
 
       { path: "brouchuredata", element: withSuspense(Brouchuredata) },
       { path: "contact-data", element: withSuspense(ContactData) },
+      { path: "spinner", element: withSuspense(SpinnerData) },
 
       { path: "faqs", element: withSuspense(FaqList) },
       { path: "editfaq/:id", element: withSuspense(EditFaq) },
