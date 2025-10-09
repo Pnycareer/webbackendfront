@@ -62,7 +62,7 @@ const ALL_SIDEBAR_ITEMS = [
         icon: BookAIcon,
         color: "#EC4899",
         href: "/dashboard/courses-faqs",
-      },  
+      },
       {
         name: "Course Module",
         icon: SiMetrodelaciudaddemexico,
@@ -83,7 +83,6 @@ const ALL_SIDEBAR_ITEMS = [
         color: "#8B5CF6",
         href: "/dashboard/academia-courses",
       },
-      
     ],
   },
   {
@@ -224,7 +223,9 @@ const Sidebar = () => {
   // 🧠 Filter sidebar items by role
   const sidebarItems = ALL_SIDEBAR_ITEMS.filter((item) => {
     if (user?.role === "csr") {
-      return item.name === "Brouchure Data";
+      // allow multiple items for CSR role
+      const allowedItems = ["Brouchure Data", "Contact Data", "Spinner Data"];
+      return allowedItems.includes(item.name);
     }
 
     if (item.name === "Users" && user?.role !== "superadmin") {
@@ -337,7 +338,7 @@ const Sidebar = () => {
 
       {/* RIGHT CONTENT */}
       <div className="flex-1 overflow-y-auto">
-         <SiteBackground/>
+        <SiteBackground />
         <Header />
         <Outlet />
       </div>
