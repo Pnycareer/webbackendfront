@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 // shadcn/ui imports
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -55,13 +55,16 @@ const AddacademiaCourses = () => {
     course_Image_Alt: "",
     Short_Description: "",
     Meta_Title: "",
-    Meta_Description: ""
+    Meta_Description: "",
+    // only used when corporate trainings:
+    Audience: "",
+    software: "",
   });
 
-  // NEW: Subjects + FAQs state (same as Edit)
-  const [subjects, setSubjects] = useState([]);     // ["maths","physics"]
+  // Subjects + FAQs state
+  const [subjects, setSubjects] = useState([]);
   const [subjectInput, setSubjectInput] = useState("");
-  const [faqs, setFaqs] = useState([]);             // [{question, answer}]
+  const [faqs, setFaqs] = useState([]);
 
   const [courseImageFile, setCourseImageFile] = useState(null);
   const [brochureFile, setBrochureFile] = useState(null);
@@ -72,7 +75,7 @@ const AddacademiaCourses = () => {
   const selectedInstructor =
     instructors?.find((i) => (i?._id || i?.id) === form.Instructor) || null;
 
-  // helpers: subjects (parity with Edit)
+  // helpers: subjects
   const pushSubjectsFromString = (raw) => {
     const parts = String(raw || "")
       .split(/[,\n]/)
@@ -96,7 +99,7 @@ const AddacademiaCourses = () => {
   };
   const removeSubject = (value) => setSubjects((prev) => prev.filter((s) => s !== value));
 
-  // helpers: faqs (parity with Edit)
+  // helpers: faqs
   const addFaq = () => setFaqs((s) => [...s, { question: "", answer: "" }]);
   const removeFaq = (idx) => setFaqs((s) => s.filter((_, i) => i !== idx));
   const updateFaq = (idx, key, value) =>
@@ -111,6 +114,16 @@ const AddacademiaCourses = () => {
     setForm((s) => ({ ...s, [name]: checked }));
   };
 
+  const isCorporate = (form.coursecategory || "").toLowerCase() === "corporate trainings";
+
+  // 🔁 dynamic label + placeholder per your request
+  const subjectsLabel = isCorporate
+    ? "Key Topics (press Enter or comma to add)"
+    : "Subjects (press Enter or comma to add)";
+  const subjectsPlaceholder = isCorporate
+    ? "trainings program name"
+    : "maths, physics, computer";
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMsg(null);
@@ -123,8 +136,17 @@ const AddacademiaCourses = () => {
       setMsg({ type: "error", text: "Instructor ObjectId is required." });
       return;
     }
+    if (isCorporate) {
+      if (!form.Audience.trim()) {
+        setMsg({ type: "error", text: "Audience is required for Corporate Trainings." });
+        return;
+      }
+      if (!form.software.trim()) {
+        setMsg({ type: "error", text: "software is required for Corporate Trainings." });
+        return;
+      }
+    }
 
-    // Clean FAQs before sending (same as Edit)
     const faqsClean = faqs
       .map((f) => ({ question: (f.question || "").trim(), answer: (f.answer || "").trim() }))
       .filter((f) => f.question && f.answer);
@@ -134,7 +156,7 @@ const AddacademiaCourses = () => {
       if (v !== undefined && v !== null && v !== "") fd.append(k, v);
     });
 
-    // NEW: send subjects & faqs as JSON strings
+    // subjects & faqs as JSON strings
     fd.append("subjects", JSON.stringify(subjects || []));
     fd.append("faqs", JSON.stringify(faqsClean || []));
 
@@ -161,7 +183,9 @@ const AddacademiaCourses = () => {
         course_Image_Alt: "",
         Short_Description: "",
         Meta_Title: "",
-        Meta_Description: ""
+        Meta_Description: "",
+        Audience: "",
+        software: "",
       });
       setSubjects([]);
       setSubjectInput("");
@@ -214,21 +238,47 @@ const AddacademiaCourses = () => {
 
             {/* category */}
             <div>
-  <Label htmlFor="coursecategory">Course Category</Label>
-  <Select
-    value={form.coursecategory}
-    onValueChange={(v) => setForm((s) => ({ ...s, coursecategory: v }))}
-  >
-    <SelectTrigger className="w-full">
-      <SelectValue placeholder="Select category" />
-    </SelectTrigger>
-    <SelectContent>
-      <SelectItem value="academia">Academia</SelectItem>
-      <SelectItem value="corporate trainings">Corporate Trainings</SelectItem>
-    </SelectContent>
-  </Select>
-</div>
+              <Label htmlFor="coursecategory">Course Category</Label>
+              <Select
+                value={form.coursecategory}
+                onValueChange={(v) => setForm((s) => ({ ...s, coursecategory: v }))}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="academia">Academia</SelectItem>
+                  <SelectItem value="corporate trainings">Corporate Trainings</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
+            {/* show only when corporate trainings */}
+            {isCorporate && (
+              <>
+                <div>
+                  <Label htmlFor="Audience">Audience *</Label>
+                  <Input
+                    id="Audience"
+                    name="Audience"
+                    placeholder="e.g. Fresh grads, Mid-level devs, QA team"
+                    value={form.Audience}
+                    onChange={onChange}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="software">software *</Label>
+                  <Input
+                    id="software"
+                    name="software"
+                    placeholder="e.g. Jira, GitHub, Docker, Figma"
+                    value={form.software}
+                    onChange={onChange}
+                  />
+                </div>
+              </>
+            )}
 
             {/* instructor combobox */}
             <div className="space-y-2">
@@ -311,11 +361,11 @@ const AddacademiaCourses = () => {
               </Select>
             </div>
 
-            {/* NEW: Subjects */}
+            {/* Subjects / Key Topics */}
             <div className="space-y-2">
-              <Label>Subjects (press Enter or comma to add)</Label>
+              <Label>{subjectsLabel}</Label>
               <Input
-                placeholder="maths, physics, computer"
+                placeholder={subjectsPlaceholder}
                 value={subjectInput}
                 onChange={(e) => setSubjectInput(e.target.value)}
                 onKeyDown={onSubjectKeyDown}
@@ -323,11 +373,11 @@ const AddacademiaCourses = () => {
               <div className="flex flex-wrap gap-2">
                 {subjects.length ? subjects.map((s) => (
                   <Pill key={s} onRemove={() => removeSubject(s)}>{s}</Pill>
-                )) : <p className="text-sm text-muted-foreground">No subjects yet.</p>}
+                )) : <p className="text-sm text-muted-foreground">No items yet.</p>}
               </div>
             </div>
 
-            {/* short description rich text */}
+            {/* short description */}
             <div className="space-y-2">
               <Label>Short Description</Label>
               <RichTextEditor
@@ -338,7 +388,7 @@ const AddacademiaCourses = () => {
               />
             </div>
 
-            {/* course description rich text */}
+            {/* description */}
             <div className="space-y-2">
               <Label>Course Description</Label>
               <RichTextEditor
@@ -349,7 +399,7 @@ const AddacademiaCourses = () => {
               />
             </div>
 
-            {/* NEW: FAQs */}
+            {/* FAQs */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <Label>FAQs</Label>
@@ -514,5 +564,5 @@ const AddacademiaCourses = () => {
     </div>
   );
 };
-  
+
 export default AddacademiaCourses;
