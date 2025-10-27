@@ -214,15 +214,21 @@ const AddacademiaCourses = () => {
 
             {/* category */}
             <div>
-              <Label htmlFor="coursecategory">Course Category</Label>
-              <Input
-                id="coursecategory"
-                name="coursecategory"
-                disabled
-                value={form.coursecategory}
-                onChange={onChange}
-              />
-            </div>
+  <Label htmlFor="coursecategory">Course Category</Label>
+  <Select
+    value={form.coursecategory}
+    onValueChange={(v) => setForm((s) => ({ ...s, coursecategory: v }))}
+  >
+    <SelectTrigger className="w-full">
+      <SelectValue placeholder="Select category" />
+    </SelectTrigger>
+    <SelectContent>
+      <SelectItem value="academia">Academia</SelectItem>
+      <SelectItem value="corporate trainings">Corporate Trainings</SelectItem>
+    </SelectContent>
+  </Select>
+</div>
+
 
             {/* instructor combobox */}
             <div className="space-y-2">
