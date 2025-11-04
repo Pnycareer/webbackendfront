@@ -4,7 +4,13 @@ import { useParams } from "react-router-dom";
 import api from "@/utils/axios";
 
 // shadcn/ui
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  CardFooter,
+} from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -14,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
   SelectContent,
-  SelectItem
+  SelectItem,
 } from "@/components/ui/select";
 
 // combobox primitives
@@ -65,19 +71,22 @@ const EditAcademiaCourse = ({ idOrSlug: idOrSlugProp }) => {
     course_Image_Alt: "",
     Short_Description: "",
     Meta_Title: "",
-    Meta_Description: ""
+    Meta_Description: "",
+    // corporate-only
+    Audience: "",
+    software: "",
   });
 
-  // NEW: Subjects + FAQs
-  const [subjects, setSubjects] = useState([]); // ["maths","physics"]
+  // Subjects + FAQs
+  const [subjects, setSubjects] = useState([]);
   const [subjectInput, setSubjectInput] = useState("");
-  const [faqs, setFaqs] = useState([]); // [{question, answer}]
+  const [faqs, setFaqs] = useState([]);
 
   const [courseImageFile, setCourseImageFile] = useState(null);
   const [brochureFile, setBrochureFile] = useState(null);
 
-  const [currentImage, setCurrentImage] = useState(null);       // server path string
-  const [currentBrochure, setCurrentBrochure] = useState(null); // server path string
+  const [currentImage, setCurrentImage] = useState(null);
+  const [currentBrochure, setCurrentBrochure] = useState(null);
 
   // instructors
   const { instructors, loading: loadingInstructors } = useInstructors();
@@ -95,7 +104,7 @@ const EditAcademiaCourse = ({ idOrSlug: idOrSlugProp }) => {
   // helpers: subjects / faqs
   const pushSubjectsFromString = (raw) => {
     const parts = String(raw || "")
-      .split(/[,\n]/)
+      .split(/[\,\n]/)
       .map((v) => v.trim().toLowerCase())
       .filter(Boolean);
     if (!parts.length) return;
@@ -146,14 +155,20 @@ const EditAcademiaCourse = ({ idOrSlug: idOrSlugProp }) => {
           Short_Description: d.Short_Description || "",
           Meta_Title: d.Meta_Title || "",
           Meta_Description: d.Meta_Description || "",
+          Audience: d.Audience || "",
+          software: d.software || "",
         });
 
-        // NEW: prefill subjects + faqs (backend returns arrays)
+        // prefill subjects + faqs (backend returns arrays)
         setSubjects(Array.isArray(d.subjects) ? d.subjects.map((s) => String(s).toLowerCase()) : []);
-        setFaqs(Array.isArray(d.faqs) ? d.faqs.map((f) => ({
-          question: String(f?.question || ""),
-          answer: String(f?.answer || ""),
-        })) : []);
+        setFaqs(
+          Array.isArray(d.faqs)
+            ? d.faqs.map((f) => ({
+                question: String(f?.question || ""),
+                answer: String(f?.answer || ""),
+              }))
+            : []
+        );
 
         setCurrentImage(d.course_Image || null);
         setCurrentBrochure(d.Brochure || null);
@@ -164,7 +179,9 @@ const EditAcademiaCourse = ({ idOrSlug: idOrSlugProp }) => {
       }
     }
     if (idOrSlug) fetchData();
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, [idOrSlug]);
 
   const onChange = (e) => {
@@ -175,6 +192,8 @@ const EditAcademiaCourse = ({ idOrSlug: idOrSlugProp }) => {
   const onSwitch = (name, checked) => {
     setForm((s) => ({ ...s, [name]: checked }));
   };
+
+  const isCorporate = (form.coursecategory || "").toLowerCase() === "corporate trainings";
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -199,12 +218,12 @@ const EditAcademiaCourse = ({ idOrSlug: idOrSlugProp }) => {
       if (v !== undefined && v !== null && v !== "") fd.append(k, v);
     });
 
-    // NEW: send subjects & faqs as JSON strings (backend supports JSON/CSV/arrays)
+    // send subjects & faqs as JSON strings (backend supports JSON/CSV/arrays)
     fd.append("subjects", JSON.stringify(subjects || []));
     fd.append("faqs", JSON.stringify(faqsClean || []));
 
-    if (courseImageFile) fd.append("academia", courseImageFile);
-    if (brochureFile) fd.append("academiabrouchure", brochureFile);
+    if (courseImageFile) fd.append("academia", courseImageFile); // image field name for academia
+    if (brochureFile) fd.append("academiabrouchure", brochureFile); // pdf field name
 
     try {
       setBusy(true);
@@ -216,10 +235,7 @@ const EditAcademiaCourse = ({ idOrSlug: idOrSlugProp }) => {
       setCourseImageFile(null);
       setBrochureFile(null);
     } catch (err) {
-      const text =
-        err?.response?.data?.message ||
-        err?.message ||
-        "Update failed. Check console/logs.";
+      const text = err?.response?.data?.message || err?.message || "Update failed. Check console/logs.";
       setMsg({ type: "error", text });
     } finally {
       setBusy(false);
@@ -229,7 +245,9 @@ const EditAcademiaCourse = ({ idOrSlug: idOrSlugProp }) => {
   if (loading) {
     return (
       <div className="mx-auto p-4 sm:p-6">
-        <Card><CardContent className="py-8">Loading…</CardContent></Card>
+        <Card>
+          <CardContent className="py-8">Loading…</CardContent>
+        </Card>
       </div>
     );
   }
@@ -246,54 +264,59 @@ const EditAcademiaCourse = ({ idOrSlug: idOrSlugProp }) => {
             {/* coursename */}
             <div>
               <Label htmlFor="coursename">Course Name *</Label>
-              <Input
-                id="coursename"
-                name="coursename"
-                value={form.coursename}
-                onChange={onChange}
-              />
+              <Input id="coursename" name="coursename" value={form.coursename} onChange={onChange} />
             </div>
 
             {/* slug */}
             <div>
               <Label htmlFor="slug">Slug (optional)</Label>
-              <Input
-                id="slug"
-                name="slug"
-                placeholder="node-js-mongodb-basics"
-                value={form.slug}
-                onChange={onChange}
-              />
+              <Input id="slug" name="slug" placeholder="node-js-mongodb-basics" value={form.slug} onChange={onChange} />
             </div>
 
             {/* category (locked) */}
             <div>
               <Label htmlFor="coursecategory">Course Category</Label>
-              <Input
-                id="coursecategory"
-                name="coursecategory"
-                disabled
-                value={form.coursecategory}
-                onChange={onChange}
-              />
+              <Input id="coursecategory" name="coursecategory" disabled value={form.coursecategory} onChange={onChange} />
             </div>
+
+            {/* corporate-only block */}
+            {isCorporate && (
+              <>
+                <div>
+                  <Label htmlFor="Audience">Audience *</Label>
+                  <Input
+                    id="Audience"
+                    name="Audience"
+                    placeholder="e.g. Fresh grads, Mid-level devs, QA team"
+                    value={form.Audience}
+                    onChange={onChange}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="software">software *</Label>
+                  <Input
+                    id="software"
+                    name="software"
+                    placeholder="e.g. Jira, GitHub, Docker, Figma"
+                    value={form.software}
+                    onChange={onChange}
+                  />
+                </div>
+              </>
+            )}
 
             {/* instructor combobox */}
             <div className="space-y-2">
               <Label>Instructor *</Label>
               <Popover open={instructorOpen} onOpenChange={setInstructorOpen}>
                 <PopoverTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    role="combobox"
-                    className="w-full justify-between"
-                  >
+                  <Button type="button" variant="outline" role="combobox" className="w-full justify-between">
                     {loadingInstructors
                       ? "Loading instructors…"
                       : selectedInstructor
-                        ? (selectedInstructor.name || selectedInstructor.fullName || selectedInstructor.email || selectedInstructor._id)
-                        : "Select instructor"}
+                      ? selectedInstructor.name || selectedInstructor.fullName || selectedInstructor.email || selectedInstructor._id
+                      : "Select instructor"}
                     <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
                   </Button>
                 </PopoverTrigger>
@@ -332,23 +355,13 @@ const EditAcademiaCourse = ({ idOrSlug: idOrSlugProp }) => {
             {/* priority */}
             <div>
               <Label htmlFor="priority">Priority</Label>
-              <Input
-                id="priority"
-                name="priority"
-                type="number"
-                step="0.1"
-                value={form.priority}
-                onChange={onChange}
-              />
+              <Input id="priority" name="priority" type="number" step="0.1" value={form.priority} onChange={onChange} />
             </div>
 
             {/* status */}
             <div>
               <Label>Status</Label>
-              <Select
-                value={form.status}
-                onValueChange={(v) => setForm((s) => ({ ...s, status: v }))}
-              >
+              <Select value={form.status} onValueChange={(v) => setForm((s) => ({ ...s, status: v }))}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
@@ -359,7 +372,7 @@ const EditAcademiaCourse = ({ idOrSlug: idOrSlugProp }) => {
               </Select>
             </div>
 
-            {/* NEW: Subjects */}
+            {/* Subjects */}
             <div className="space-y-2">
               <Label>Subjects (press Enter or comma to add)</Label>
               <Input
@@ -369,9 +382,15 @@ const EditAcademiaCourse = ({ idOrSlug: idOrSlugProp }) => {
                 onKeyDown={onSubjectKeyDown}
               />
               <div className="flex flex-wrap gap-2">
-                {subjects.length ? subjects.map((s) => (
-                  <Pill key={s} onRemove={() => removeSubject(s)}>{s}</Pill>
-                )) : <p className="text-sm text-muted-foreground">No subjects yet.</p>}
+                {subjects.length ? (
+                  subjects.map((s) => (
+                    <Pill key={s} onRemove={() => removeSubject(s)}>
+                      {s}
+                    </Pill>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground">No subjects yet.</p>
+                )}
               </div>
             </div>
 
@@ -397,11 +416,13 @@ const EditAcademiaCourse = ({ idOrSlug: idOrSlugProp }) => {
               />
             </div>
 
-            {/* NEW: FAQs */}
+            {/* FAQs */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <Label>FAQs</Label>
-                <Button type="button" variant="outline" onClick={addFaq}>Add FAQ</Button>
+                <Button type="button" variant="outline" onClick={addFaq}>
+                  Add FAQ
+                </Button>
               </div>
               {faqs.length === 0 && (
                 <p className="text-sm text-muted-foreground">No FAQs yet. Click “Add FAQ”.</p>
@@ -441,32 +462,17 @@ const EditAcademiaCourse = ({ idOrSlug: idOrSlugProp }) => {
             {/* alt / meta */}
             <div>
               <Label htmlFor="course_Image_Alt">Course Image Alt</Label>
-              <Input
-                id="course_Image_Alt"
-                name="course_Image_Alt"
-                value={form.course_Image_Alt}
-                onChange={onChange}
-              />
+              <Input id="course_Image_Alt" name="course_Image_Alt" value={form.course_Image_Alt} onChange={onChange} />
             </div>
 
             <div>
               <Label htmlFor="Meta_Title">Meta Title</Label>
-              <Input
-                id="Meta_Title"
-                name="Meta_Title"
-                value={form.Meta_Title}
-                onChange={onChange}
-              />
+              <Input id="Meta_Title" name="Meta_Title" value={form.Meta_Title} onChange={onChange} />
             </div>
 
             <div>
               <Label htmlFor="Meta_Description">Meta Description</Label>
-              <Input
-                id="Meta_Description"
-                name="Meta_Description"
-                value={form.Meta_Description}
-                onChange={onChange}
-              />
+              <Input id="Meta_Description" name="Meta_Description" value={form.Meta_Description} onChange={onChange} />
             </div>
 
             {/* toggles */}
@@ -476,10 +482,7 @@ const EditAcademiaCourse = ({ idOrSlug: idOrSlugProp }) => {
                   <Label className="block">View on Web</Label>
                   <p className="text-sm text-muted-foreground">Enable public visibility</p>
                 </div>
-                <Switch
-                  checked={form.viewOnWeb}
-                  onCheckedChange={(c) => onSwitch("viewOnWeb", c)}
-                />
+                <Switch checked={form.viewOnWeb} onCheckedChange={(c) => onSwitch("viewOnWeb", c)} />
               </div>
 
               <div className="flex items-center justify-between rounded-2xl border p-3">
@@ -487,10 +490,7 @@ const EditAcademiaCourse = ({ idOrSlug: idOrSlugProp }) => {
                   <Label className="block">In Sitemap</Label>
                   <p className="text-sm text-muted-foreground">Include in sitemap.xml</p>
                 </div>
-                <Switch
-                  checked={form.In_Sitemap}
-                  onCheckedChange={(c) => onSwitch("In_Sitemap", c)}
-                />
+                <Switch checked={form.In_Sitemap} onCheckedChange={(c) => onSwitch("In_Sitemap", c)} />
               </div>
 
               <div className="flex items-center justify-between rounded-2xl border p-3">
@@ -498,10 +498,7 @@ const EditAcademiaCourse = ({ idOrSlug: idOrSlugProp }) => {
                   <Label className="block">Page Index</Label>
                   <p className="text-sm text-muted-foreground">Allow search indexing</p>
                 </div>
-                <Switch
-                  checked={form.Page_Index}
-                  onCheckedChange={(c) => onSwitch("Page_Index", c)}
-                />
+                <Switch checked={form.Page_Index} onCheckedChange={(c) => onSwitch("Page_Index", c)} />
               </div>
             </div>
 
@@ -549,9 +546,7 @@ const EditAcademiaCourse = ({ idOrSlug: idOrSlugProp }) => {
                 onChange={(e) => setCourseImageFile(e.target.files?.[0] || null)}
               />
               {courseImageFile ? (
-                <p className="text-xs text-muted-foreground break-all">
-                  Selected: {courseImageFile.name}
-                </p>
+                <p className="text-xs text-muted-foreground break-all">Selected: {courseImageFile.name}</p>
               ) : (
                 <p className="text-xs text-muted-foreground">Leave empty to keep current image.</p>
               )}
@@ -566,9 +561,7 @@ const EditAcademiaCourse = ({ idOrSlug: idOrSlugProp }) => {
                 onChange={(e) => setBrochureFile(e.target.files?.[0] || null)}
               />
               {brochureFile ? (
-                <p className="text-xs text-muted-foreground break-all">
-                  Selected: {brochureFile.name}
-                </p>
+                <p className="text-xs text-muted-foreground break-all">Selected: {brochureFile.name}</p>
               ) : (
                 <p className="text-xs text-muted-foreground">Leave empty to keep current brochure.</p>
               )}
@@ -579,13 +572,7 @@ const EditAcademiaCourse = ({ idOrSlug: idOrSlugProp }) => {
                 {busy ? "Saving…" : "Update Course"}
               </Button>
               {msg && (
-                <span
-                  className={
-                    msg.type === "error"
-                      ? "text-sm text-red-600"
-                      : "text-sm text-green-600"
-                  }
-                >
+                <span className={msg.type === "error" ? "text-sm text-red-600" : "text-sm text-green-600"}>
                   {msg.text}
                 </span>
               )}
