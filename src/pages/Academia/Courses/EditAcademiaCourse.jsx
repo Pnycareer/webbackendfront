@@ -203,8 +203,8 @@ const EditAcademiaCourse = ({ idOrSlug: idOrSlugProp }) => {
     fd.append("subjects", JSON.stringify(subjects || []));
     fd.append("faqs", JSON.stringify(faqsClean || []));
 
-    if (courseImageFile) fd.append("course_Image", courseImageFile);
-    if (brochureFile) fd.append("Brochure", brochureFile);
+    if (courseImageFile) fd.append("academia", courseImageFile);
+    if (brochureFile) fd.append("academiabrouchure", brochureFile);
 
     try {
       setBusy(true);

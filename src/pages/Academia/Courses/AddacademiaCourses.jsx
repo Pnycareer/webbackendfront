@@ -1,6 +1,12 @@
 import React, { useState } from "react";
 // shadcn/ui imports
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  CardFooter,
+} from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -10,10 +16,14 @@ import {
   SelectTrigger,
   SelectValue,
   SelectContent,
-  SelectItem
+  SelectItem,
 } from "@/components/ui/select";
 // combobox primitives
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from "@/components/ui/popover";
 import {
   Command,
   CommandInput,
@@ -31,7 +41,11 @@ import api from "@/utils/axios";
 const Pill = ({ children, onRemove }) => (
   <span className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm border">
     {children}
-    <button type="button" onClick={onRemove} className="opacity-60 hover:opacity-100">
+    <button
+      type="button"
+      onClick={onRemove}
+      className="opacity-60 hover:opacity-100"
+    >
       <X className="h-3 w-3" />
     </button>
   </span>
@@ -97,7 +111,8 @@ const AddacademiaCourses = () => {
       }
     }
   };
-  const removeSubject = (value) => setSubjects((prev) => prev.filter((s) => s !== value));
+  const removeSubject = (value) =>
+    setSubjects((prev) => prev.filter((s) => s !== value));
 
   // helpers: faqs
   const addFaq = () => setFaqs((s) => [...s, { question: "", answer: "" }]);
@@ -114,7 +129,9 @@ const AddacademiaCourses = () => {
     setForm((s) => ({ ...s, [name]: checked }));
   };
 
-  const isCorporate = (form.coursecategory || "").toLowerCase() === "corporate trainings";
+  const isCorporate =
+    (form.coursecategory || "").toLowerCase() === "corporate trainings";
+  const isAcademia = (form.coursecategory || "").toLowerCase() === "academia";
 
   // 🔁 dynamic label + placeholder per your request
   const subjectsLabel = isCorporate
@@ -138,17 +155,26 @@ const AddacademiaCourses = () => {
     }
     if (isCorporate) {
       if (!form.Audience.trim()) {
-        setMsg({ type: "error", text: "Audience is required for Corporate Trainings." });
+        setMsg({
+          type: "error",
+          text: "Audience is required for Corporate Trainings.",
+        });
         return;
       }
       if (!form.software.trim()) {
-        setMsg({ type: "error", text: "software is required for Corporate Trainings." });
+        setMsg({
+          type: "error",
+          text: "software is required for Corporate Trainings.",
+        });
         return;
       }
     }
 
     const faqsClean = faqs
-      .map((f) => ({ question: (f.question || "").trim(), answer: (f.answer || "").trim() }))
+      .map((f) => ({
+        question: (f.question || "").trim(),
+        answer: (f.answer || "").trim(),
+      }))
       .filter((f) => f.question && f.answer);
 
     const fd = new FormData();
@@ -160,8 +186,9 @@ const AddacademiaCourses = () => {
     fd.append("subjects", JSON.stringify(subjects || []));
     fd.append("faqs", JSON.stringify(faqsClean || []));
 
-    if (courseImageFile) fd.append("course_Image", courseImageFile);
-    if (brochureFile) fd.append("Brochure", brochureFile);
+   if (courseImageFile) fd.append("academia", courseImageFile);
+
+    if (brochureFile) fd.append("academiabrouchure", brochureFile);
 
     try {
       setBusy(true);
@@ -241,14 +268,18 @@ const AddacademiaCourses = () => {
               <Label htmlFor="coursecategory">Course Category</Label>
               <Select
                 value={form.coursecategory}
-                onValueChange={(v) => setForm((s) => ({ ...s, coursecategory: v }))}
+                onValueChange={(v) =>
+                  setForm((s) => ({ ...s, coursecategory: v }))
+                }
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="academia">Academia</SelectItem>
-                  <SelectItem value="corporate trainings">Corporate Trainings</SelectItem>
+                  <SelectItem value="corporate trainings">
+                    Corporate Trainings
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -294,8 +325,11 @@ const AddacademiaCourses = () => {
                     {loadingInstructors
                       ? "Loading instructors…"
                       : selectedInstructor
-                        ? (selectedInstructor.name || selectedInstructor.fullName || selectedInstructor.email || selectedInstructor._id)
-                        : "Select instructor"}
+                      ? selectedInstructor.name ||
+                        selectedInstructor.fullName ||
+                        selectedInstructor.email ||
+                        selectedInstructor._id
+                      : "Select instructor"}
                     <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
                   </Button>
                 </PopoverTrigger>
@@ -307,7 +341,8 @@ const AddacademiaCourses = () => {
                       <CommandGroup>
                         {(instructors || []).map((i) => {
                           const id = i?._id || i?.id;
-                          const label = i?.name || i?.fullName || i?.email || id;
+                          const label =
+                            i?.name || i?.fullName || i?.email || id;
                           return (
                             <CommandItem
                               key={id}
@@ -327,7 +362,9 @@ const AddacademiaCourses = () => {
                 </PopoverContent>
               </Popover>
               {form.Instructor ? (
-                <p className="text-xs text-muted-foreground">Selected ID: {form.Instructor}</p>
+                <p className="text-xs text-muted-foreground">
+                  Selected ID: {form.Instructor}
+                </p>
               ) : null}
             </div>
 
@@ -371,9 +408,15 @@ const AddacademiaCourses = () => {
                 onKeyDown={onSubjectKeyDown}
               />
               <div className="flex flex-wrap gap-2">
-                {subjects.length ? subjects.map((s) => (
-                  <Pill key={s} onRemove={() => removeSubject(s)}>{s}</Pill>
-                )) : <p className="text-sm text-muted-foreground">No items yet.</p>}
+                {subjects.length ? (
+                  subjects.map((s) => (
+                    <Pill key={s} onRemove={() => removeSubject(s)}>
+                      {s}
+                    </Pill>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground">No items yet.</p>
+                )}
               </div>
             </div>
 
@@ -382,7 +425,9 @@ const AddacademiaCourses = () => {
               <Label>Short Description</Label>
               <RichTextEditor
                 value={form.Short_Description}
-                onChange={(html) => setForm((s) => ({ ...s, Short_Description: html }))}
+                onChange={(html) =>
+                  setForm((s) => ({ ...s, Short_Description: html }))
+                }
                 placeholder="Write a short teaser…"
                 height={400}
               />
@@ -393,7 +438,9 @@ const AddacademiaCourses = () => {
               <Label>Course Description</Label>
               <RichTextEditor
                 value={form.Course_Description}
-                onChange={(html) => setForm((s) => ({ ...s, Course_Description: html }))}
+                onChange={(html) =>
+                  setForm((s) => ({ ...s, Course_Description: html }))
+                }
                 placeholder="Full course details…"
                 height={400}
               />
@@ -403,17 +450,28 @@ const AddacademiaCourses = () => {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <Label>FAQs</Label>
-                <Button type="button" variant="outline" onClick={addFaq}>Add FAQ</Button>
+                <Button type="button" variant="outline" onClick={addFaq}>
+                  Add FAQ
+                </Button>
               </div>
               {faqs.length === 0 && (
-                <p className="text-sm text-muted-foreground">No FAQs yet. Click “Add FAQ”.</p>
+                <p className="text-sm text-muted-foreground">
+                  No FAQs yet. Click “Add FAQ”.
+                </p>
               )}
               <div className="space-y-4">
                 {faqs.map((f, idx) => (
                   <div key={idx} className="rounded-2xl border p-4 space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">FAQ #{idx + 1}</span>
-                      <Button type="button" variant="ghost" size="sm" onClick={() => removeFaq(idx)}>
+                      <span className="text-sm font-medium">
+                        FAQ #{idx + 1}
+                      </span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeFaq(idx)}
+                      >
                         Remove
                       </Button>
                     </div>
@@ -422,7 +480,9 @@ const AddacademiaCourses = () => {
                         <Label>Question *</Label>
                         <Input
                           value={f.question}
-                          onChange={(e) => updateFaq(idx, "question", e.target.value)}
+                          onChange={(e) =>
+                            updateFaq(idx, "question", e.target.value)
+                          }
                           placeholder="Do I need prior coding experience?"
                         />
                       </div>
@@ -430,7 +490,9 @@ const AddacademiaCourses = () => {
                         <Label>Answer *</Label>
                         <Input
                           value={f.answer}
-                          onChange={(e) => updateFaq(idx, "answer", e.target.value)}
+                          onChange={(e) =>
+                            updateFaq(idx, "answer", e.target.value)
+                          }
                           placeholder="No, we start from basics."
                         />
                       </div>
@@ -476,7 +538,9 @@ const AddacademiaCourses = () => {
               <div className="flex items-center justify-between rounded-2xl border p-3">
                 <div>
                   <Label className="block">View on Web</Label>
-                  <p className="text-sm text-muted-foreground">Enable public visibility</p>
+                  <p className="text-sm text-muted-foreground">
+                    Enable public visibility
+                  </p>
                 </div>
                 <Switch
                   checked={form.viewOnWeb}
@@ -487,7 +551,9 @@ const AddacademiaCourses = () => {
               <div className="flex items-center justify-between rounded-2xl border p-3">
                 <div>
                   <Label className="block">In Sitemap</Label>
-                  <p className="text-sm text-muted-foreground">Include in sitemap.xml</p>
+                  <p className="text-sm text-muted-foreground">
+                    Include in sitemap.xml
+                  </p>
                 </div>
                 <Switch
                   checked={form.In_Sitemap}
@@ -498,7 +564,9 @@ const AddacademiaCourses = () => {
               <div className="flex items-center justify-between rounded-2xl border p-3">
                 <div>
                   <Label className="block">Page Index</Label>
-                  <p className="text-sm text-muted-foreground">Allow search indexing</p>
+                  <p className="text-sm text-muted-foreground">
+                    Allow search indexing
+                  </p>
                 </div>
                 <Switch
                   checked={form.Page_Index}
@@ -514,14 +582,18 @@ const AddacademiaCourses = () => {
                 id="course_Image"
                 type="file"
                 accept="image/*"
-                onChange={(e) => setCourseImageFile(e.target.files?.[0] || null)}
+                onChange={(e) =>
+                  setCourseImageFile(e.target.files?.[0] || null)
+                }
               />
               {courseImageFile ? (
                 <p className="text-xs text-muted-foreground break-all">
                   Selected: {courseImageFile.name}
                 </p>
               ) : (
-                <p className="text-xs text-muted-foreground">Optional but recommended.</p>
+                <p className="text-xs text-muted-foreground">
+                  Optional but recommended.
+                </p>
               )}
             </div>
 
