@@ -1,11 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-// import axios from "axios";
-import Header from "../../common/Header";
-import ReactQuill from "react-quill";
-import "react-quill/dist/quill.snow.css";
-// import { toast } from "react-toastify";
 import Quill from "quill";
+import "react-quill/dist/quill.snow.css";
 import RichTextEditor from "../../RichTextEditor/RichTextEditor";
 import axios from "../../../utils/axios";
 import useCourses from "../../../hooks/useCourses";
@@ -13,6 +9,7 @@ import useCourses from "../../../hooks/useCourses";
 const EditCourse = () => {
   const navigate = useNavigate();
   const { id } = useParams();
+
   const [course, setCourse] = useState({
     course_Name: "",
     Short_Description: "",
@@ -22,7 +19,6 @@ const EditCourse = () => {
     Admission_Fee: "",
     Brochure: "",
     Course_Description: "",
-    // Custom_Canonical_Url: "",
     Duration_Day: "",
     Duration_Months: "",
     In_Sitemap: false,
@@ -40,16 +36,19 @@ const EditCourse = () => {
     course_Category: "",
     featured_Option: "",
     bootcamp: false,
+
+    // JSON-LD schemas (array of strings)
+    schemas: [],
   });
+
   const [categories, setCategories] = useState([]);
   const [brochureFile, setBrochureFile] = useState(null);
   const [instructors, setInstructors] = useState([]);
-  const [courseType, setCourseType] = useState("normal"); // normal | city
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [targetCategoryId, setTargetCategoryId] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { updateCourse } = useCourses(); // 👈 inside component
+  const { updateCourse } = useCourses();
 
   const quillRef = useRef();
 
@@ -69,7 +68,6 @@ const EditCourse = () => {
       const response = await axios.get(
         `${import.meta.env.VITE_API_URL}/courses/getallcategories/getcategory`
       );
-      console.log("Fetched categories:", response.data); // 🔍 Debug this
       setCategories(response.data);
     } catch (error) {
       console.error("Error fetching categories:", error);
@@ -85,14 +83,33 @@ const EditCourse = () => {
             `${import.meta.env.VITE_API_URL}/api/instructors/get-instructor`
           ),
         ]);
+
         const fetchedCourse = courseResponse.data;
-        // Ensure all keys in the state exist in the fetched course
-        const updatedCourse = { ...course };
-        for (const key in updatedCourse) {
+
+        // make sure all keys exist (including schemas)
+        const template = { ...course };
+        for (const key in template) {
           if (!(key in fetchedCourse)) {
-            fetchedCourse[key] = updatedCourse[key];
+            fetchedCourse[key] = template[key];
           }
         }
+
+        // ensure schemas is always an array of editable strings
+        if (!Array.isArray(fetchedCourse.schemas)) {
+          fetchedCourse.schemas = fetchedCourse.schemas
+            ? [fetchedCourse.schemas]
+            : [];
+        }
+        fetchedCourse.schemas = fetchedCourse.schemas.map((schemaBlock) => {
+          if (schemaBlock == null) return "";
+          if (typeof schemaBlock === "string") return schemaBlock;
+          try {
+            return JSON.stringify(schemaBlock, null, 2);
+          } catch (_) {
+            return "";
+          }
+        });
+
         setCourse(fetchedCourse);
         setInstructors(instructorsResponse.data);
         setLoading(false);
@@ -102,41 +119,20 @@ const EditCourse = () => {
         setLoading(false);
       }
     };
+
     if (id) fetchData();
     fetchCategories();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const slugify = (text) => {
     return text
       .trim()
       .toLowerCase()
-      .replace(/[^a-z0-9\s.-]/g, "") // ✅ allow dots and dashes
-      .replace(/\s+/g, "-") // Replace spaces with dash
-      .replace(/-+/g, "-"); // Replace multiple dashes with single dash
+      .replace(/[^a-z0-9\s.-]/g, "")
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-");
   };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const { faqs, ...courseWithoutFaqs } = course;
-    await updateCourse({
-      id,
-      data: courseWithoutFaqs,
-      brochureFile,
-      targetCategoryId,
-      setIsSubmitting,
-    });
-  };
-  // const handleCancel = () => {
-  //   navigate("/courses");
-  // };
-
-  // const handleChange = (e) => {
-  //   const { name, value, type, checked } = e.target;
-  //   setCourse((prevCourse) => ({
-  //     ...prevCourse,
-  //     [name]: type === "checkbox" ? checked : value,
-  //   }));
-  // };
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -147,16 +143,62 @@ const EditCourse = () => {
         type === "checkbox"
           ? checked
           : name === "url_Slug"
-          ? slugify(value) // ✅ Apply slugify ONLY for url_Slug
+          ? slugify(value)
           : value,
     }));
   };
 
+  // ====== schema handlers ======
+
+  const handleSchemaChange = (index, value) => {
+    setCourse((prev) => {
+      const schemas = Array.isArray(prev.schemas) ? [...prev.schemas] : [];
+      schemas[index] = value;
+      return { ...prev, schemas };
+    });
+  };
+
+  const addSchemaBlock = () => {
+    setCourse((prev) => ({
+      ...prev,
+      schemas: [...(prev.schemas || []), ""],
+    }));
+  };
+
+  const removeSchemaBlock = (index) => {
+    setCourse((prev) => {
+      const schemas = [...(prev.schemas || [])];
+      schemas.splice(index, 1);
+      return { ...prev, schemas };
+    });
+  };
+
+ const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  const { faqs, schemas, ...courseWithoutFaqs } = course;
+
+  const normalizedSchemas = (schemas || [])
+    .map((s) => (s && s.trim() ? s : null))
+    .filter(Boolean);
+
+  const payload = {
+    ...courseWithoutFaqs,
+    schemas: normalizedSchemas,    // 👈 array of raw strings
+  };
+
+  await updateCourse({
+    id,
+    data: payload,
+    brochureFile,
+    targetCategoryId,
+    setIsSubmitting,
+  });
+};
+
+
   if (loading) return <p>Loading...</p>;
   if (error) return <p className="text-red-500">{error}</p>;
-
-  console.log(targetCategoryId, "target");
-  console.log(categories, "categories");
 
   return (
     <div className="w-full overflow-auto">
@@ -164,7 +206,9 @@ const EditCourse = () => {
         <h2 className="text-2xl font-semibold text-gray-100 mb-5">
           Edit Course
         </h2>
+
         <form onSubmit={handleSubmit} encType="multipart/form-data">
+          {/* Move to Category */}
           <div className="mb-4">
             <label className="block text-gray-300">Move to Category</label>
             <select
@@ -183,6 +227,7 @@ const EditCourse = () => {
               Pick a category to move this course into. Leave blank to stay put.
             </p>
           </div>
+
           {/* Course Name */}
           <div className="mb-4">
             <label className="block text-gray-300">Course Name</label>
@@ -206,28 +251,6 @@ const EditCourse = () => {
               className="w-full p-2 rounded bg-gray-700 text-white"
             />
           </div>
-          {/* Course Category */}
-          {/* <div className="mb-4">
-            <label className="block text-gray-300">Course Category</label>
-            <select
-              name="course_Category"
-              value={course.course_Category?._id || course.course_Category}
-              onChange={(e) =>
-                setCourse((prev) => ({
-                  ...prev,
-                  course_Category: e.target.value,
-                }))
-              }
-              className="w-full p-2 rounded bg-gray-700 text-white"
-            >
-              <option value="">Select a category</option>
-              {categories.map((cat) => (
-                <option key={cat._id} value={cat._id}>
-                  {cat.Category_Name}
-                </option>
-              ))}
-            </select>
-          </div> */}
 
           {/* Course Image */}
           <div className="mb-4">
@@ -245,6 +268,7 @@ const EditCourse = () => {
             />
           </div>
 
+          {/* Image Alt */}
           <div className="mb-4">
             <label className="block text-gray-300">Image Alt Text</label>
             <input
@@ -257,6 +281,7 @@ const EditCourse = () => {
             />
           </div>
 
+          {/* Video ID */}
           <div className="my-2">
             <label>Video ID</label>
             <input
@@ -279,8 +304,7 @@ const EditCourse = () => {
             >
               <option value="" disabled>
                 Select Skill Level
-              </option>{" "}
-              {/* Default Placeholder */}
+              </option>
               <option value="Beginner">Beginner</option>
               <option value="Intermediate">Intermediate</option>
               <option value="Advanced">Advanced</option>
@@ -301,11 +325,13 @@ const EditCourse = () => {
           {/* Course Description */}
           <div className="mb-4">
             <label className="block text-gray-300">Course Description</label>
-
             <RichTextEditor
               value={course.Course_Description}
               onChange={(content) =>
-                setCourse((prev) => ({ ...prev, Course_Description: content }))
+                setCourse((prev) => ({
+                  ...prev,
+                  Course_Description: content,
+                }))
               }
             />
           </div>
@@ -328,6 +354,7 @@ const EditCourse = () => {
             </select>
           </div>
 
+          {/* Fees & Duration */}
           <div className="mb-4">
             <label className="block text-gray-300">Monthly_Fee</label>
             <input
@@ -339,7 +366,6 @@ const EditCourse = () => {
             />
           </div>
 
-          {/* Admission Fee */}
           <div className="mb-4">
             <label className="block text-gray-300">Admission Fee</label>
             <input
@@ -350,6 +376,7 @@ const EditCourse = () => {
               className="w-full p-2 rounded bg-gray-700 text-white"
             />
           </div>
+
           <div className="mb-4">
             <label className="block text-gray-300">Duration_Months</label>
             <input
@@ -360,6 +387,7 @@ const EditCourse = () => {
               className="w-full p-2 rounded bg-gray-700 text-white"
             />
           </div>
+
           <div className="mb-4">
             <label className="block text-gray-300">Duration_Day</label>
             <input
@@ -371,6 +399,7 @@ const EditCourse = () => {
             />
           </div>
 
+          {/* Meta */}
           <div className="mb-4">
             <label className="block text-gray-300">Meta_Title</label>
             <input
@@ -404,6 +433,7 @@ const EditCourse = () => {
               className="w-full p-2 rounded bg-gray-700 text-white"
             />
           </div>
+
           {course.Brochure && (
             <a
               href={`${import.meta.env.VITE_API_URL}/${course.Brochure}`}
@@ -415,6 +445,7 @@ const EditCourse = () => {
             </a>
           )}
 
+          {/* Status / flags */}
           <div className="mb-4">
             <label className="block text-gray-300">Status</label>
             <select
@@ -430,7 +461,7 @@ const EditCourse = () => {
             </select>
           </div>
 
-          <div>
+          <div className="my-2">
             <label>Table of Content</label>
             <input
               type="checkbox"
@@ -442,7 +473,7 @@ const EditCourse = () => {
             />
           </div>
 
-          <div>
+          <div className="my-2">
             <label>View on Web</label>
             <input
               type="checkbox"
@@ -488,7 +519,7 @@ const EditCourse = () => {
             <label className="block text-gray-300">Priority</label>
             <input
               type="number"
-              step="0.1" // Allow decimals
+              step="0.1"
               min="0.0"
               max="0.9"
               name="priority"
@@ -510,18 +541,57 @@ const EditCourse = () => {
             />
           </div>
 
-          {/* <div className="mb-4">
-            <label className="block text-gray-300">Custom_Canonical_Url</label>
-            <input
-              type="text"
-              name="Custom_Canonical_Url"
-              value={course.Custom_Canonical_Url}
-              onChange={handleChange}
-              className="w-full p-2 rounded bg-gray-700 text-white"
-            />
-          </div> */}
+          {/* Schema editor */}
+          <div className="mt-6 mb-4">
+            <label className="block text-gray-300 mb-2">
+              Structured Data (JSON-LD Schemas)
+            </label>
 
-          <div className="flex justify-between">
+            {(!course.schemas || course.schemas.length === 0) && (
+              <p className="text-sm text-gray-400 mb-2">
+                No schemas yet. Click &quot;Add Schema&quot; to add FAQ,
+                Article, BreadcrumbList, etc.
+              </p>
+            )}
+
+            {course.schemas &&
+              course.schemas.map((schemaItem, index) => (
+                <div
+                  key={index}
+                  className="mb-3 border border-gray-600 rounded p-3 bg-gray-800"
+                >
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-gray-200 text-sm">
+                      Schema #{index + 1}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => removeSchemaBlock(index)}
+                      className="text-xs px-2 py-1 rounded bg-red-600 text-white hover:bg-red-500"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                  <textarea
+                    className="w-full min-h-[140px] p-2 rounded bg-gray-900 text-white text-xs font-mono"
+                    placeholder={`Paste JSON-LD here, e.g.\n{\n  "@context": "https://schema.org",\n  "@type": "FAQPage",\n  ...\n}`}
+                    value={schemaItem || ""}
+                    onChange={(e) => handleSchemaChange(index, e.target.value)}
+                  />
+                </div>
+              ))}
+
+            <button
+              type="button"
+              onClick={addSchemaBlock}
+              className="mt-2 px-3 py-1 rounded bg-green-600 text-white text-sm hover:bg-green-500"
+            >
+              Add Schema
+            </button>
+          </div>
+
+          {/* Buttons */}
+          <div className="flex justify-between mt-6">
             <button
               type="submit"
               disabled={isSubmitting}
@@ -534,8 +604,8 @@ const EditCourse = () => {
 
             <button
               type="button"
-              // onClick={handleCancel}
               className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-500 focus:outline-none"
+              onClick={() => navigate("/dashboard/courses")}
             >
               Cancel
             </button>
