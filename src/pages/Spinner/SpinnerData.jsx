@@ -2,28 +2,43 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Loader2, Search, RefreshCw, CheckCircle2 } from "lucide-react";
 import api from "../../utils/axios";
-
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
-  Table, TableHeader, TableRow, TableHead, TableBody, TableCell,
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 
 const fmtDate = (iso) => {
   if (!iso) return "—";
   const d = new Date(iso);
-  return isNaN(d.getTime()) ? "—" : d.toLocaleString();
+  return d.toLocaleDateString() + " " + d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 };
 
 const StatusBadge = ({ status }) => {
   const s = (status || "").toLowerCase();
   const variant =
-    s === "approved" ? "default" :
-    s === "rejected" ? "destructive" :
-    s === "pending"  ? "secondary"  : "outline";
+    s === "approved"
+      ? "default"
+      : s === "rejected"
+      ? "destructive"
+      : s === "pending"
+      ? "secondary"
+      : s === "done"
+      ? "default"
+      : "outline";
   return <Badge variant={variant}>{status || "—"}</Badge>;
 };
 
@@ -36,7 +51,11 @@ const SpinnerData = () => {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
   const [page, setPage] = useState(1);
-  const [rowBusy, setRowBusy] = useState({}); // {_id: boolean}
+  const [rowBusy, setRowBusy] = useState({});
+  const [cityFilter, setCityFilter] = useState("all");
+  const [branchFilter, setBranchFilter] = useState("all");
+  const [dateFilter, setDateFilter] = useState("all");
+  const [qLive, setQLive] = useState("");
 
   const fetchData = async () => {
     setLoading(true);
@@ -45,70 +64,95 @@ const SpinnerData = () => {
       const res = await api.get("/api/applications");
       const json = res.data;
       const rows = Array.isArray(json) ? json : json.data || [];
-      const c    = Array.isArray(json) ? rows.length : json.count ?? rows.length;
+      const c = Array.isArray(json) ? rows.length : json.count ?? rows.length;
       setData(rows);
       setCount(c);
     } catch (e) {
-      const msg = e?.response?.data?.message || e?.response?.data?.error || e?.message || "Request failed";
-      setErr(msg);
+      setErr(e?.response?.data?.message || e?.response?.data?.error || e?.message || "Request failed");
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { fetchData(); }, []);
-
-  const [qLive, setQLive] = useState("");
   useEffect(() => {
-    const t = setTimeout(() => setQ(qLive.trim()), 250);
+    fetchData();
+  }, []);
+
+  useEffect(() => {
+    const t = setTimeout(() => setQ(qLive.trim()), 300);
     return () => clearTimeout(t);
   }, [qLive]);
 
+  const uniqueCities = useMemo(
+    () => Array.from(new Set(data.map((r) => r.city).filter(Boolean))),
+    [data]
+  );
+  const uniqueBranches = useMemo(
+    () => Array.from(new Set(data.map((r) => r.branch).filter(Boolean))),
+    [data]
+  );
+
   const filtered = useMemo(() => {
-    if (!q) return data;
-    const needle = q.toLowerCase();
-    return data.filter((row) =>
-      [row.name, row.email, row.contact, row.course_Name, row.status, row.url_Slug]
-        .filter(Boolean)
-        .some((v) => String(v).toLowerCase().includes(needle))
-    );
-  }, [data, q]);
+    let rows = data;
+
+    if (q) {
+      const needle = q.toLowerCase();
+      rows = rows.filter((row) =>
+        [row.name, row.email, row.contact, row.course_Name, row.status, row.url_Slug]
+          .filter(Boolean)
+          .some((v) => String(v).toLowerCase().includes(needle))
+      );
+    }
+
+    if (cityFilter !== "all") {
+      rows = rows.filter(
+        (r) => String(r.city).toLowerCase() === cityFilter.toLowerCase()
+      );
+    }
+
+    if (branchFilter !== "all") {
+      rows = rows.filter(
+        (r) => String(r.branch).toLowerCase() === branchFilter.toLowerCase()
+      );
+    }
+
+    if (dateFilter !== "all") {
+      const now = new Date();
+      rows = rows.filter((r) => {
+        const d = new Date(r.createdAt);
+        if (isNaN(d)) return false;
+        const diff = (now - d) / (1000 * 60 * 60 * 24);
+        if (dateFilter === "today") return diff < 1;
+        if (dateFilter === "week") return diff < 7;
+        if (dateFilter === "month") return diff < 30;
+        return true;
+      });
+    }
+
+    return rows.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  }, [data, q, cityFilter, branchFilter, dateFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
   const pageStart = (currentPage - 1) * PAGE_SIZE;
   const pageRows = filtered.slice(pageStart, pageStart + PAGE_SIZE);
 
-  useEffect(() => { setPage(1); }, [q]);
+  useEffect(() => setPage(1), [q, cityFilter, branchFilter, dateFilter]);
 
   const markDone = async (row) => {
     if (!row?._id) return;
     if (String(row.status).toLowerCase() === "done") return;
 
-    // optimistic update
     setRowBusy((m) => ({ ...m, [row._id]: true }));
     const prev = data;
-
     try {
       setData((rows) =>
         rows.map((r) => (r._id === row._id ? { ...r, status: "done" } : r))
       );
-
       await api.patch(`/api/applications/${row._id}/done`);
-
-      // (optional) trust server version & merge back:
-      // const { data: resp } = await api.patch(...);
-      // const updated = resp?.data;
-      // if (updated) setData(rows => rows.map(r => r._id===updated._id ? updated : r));
     } catch (e) {
-      // revert optimistic update on failure
       setData(prev);
-      console.error(e);
-      alert(
-        e?.response?.data?.message ||
-          e?.response?.data?.error ||
-          "Failed to mark as done."
-      );
+      alert(e?.response?.data?.message || e?.response?.data?.error || "Failed to mark as done.");
     } finally {
       setRowBusy((m) => ({ ...m, [row._id]: false }));
     }
@@ -125,8 +169,9 @@ const SpinnerData = () => {
               : `${filtered.length} result${filtered.length === 1 ? "" : "s"}${q ? " (filtered)" : ""} · total: ${count}`}
           </p>
         </div>
-        <div className="flex w-full sm:w-auto items-center gap-2">
-          <div className="relative w-full sm:w-80">
+
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          <div className="relative w-full sm:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 opacity-60" />
             <Input
               value={qLive}
@@ -135,6 +180,33 @@ const SpinnerData = () => {
               className="pl-9"
             />
           </div>
+
+          <Select value={cityFilter} onValueChange={setCityFilter}>
+            <SelectTrigger className="w-[130px]"><SelectValue placeholder="City" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Cities</SelectItem>
+              {uniqueCities.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+            </SelectContent>
+          </Select>
+
+          <Select value={branchFilter} onValueChange={setBranchFilter}>
+            <SelectTrigger className="w-[140px]"><SelectValue placeholder="Branch" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Branches</SelectItem>
+              {uniqueBranches.map((b) => <SelectItem key={b} value={b}>{b}</SelectItem>)}
+            </SelectContent>
+          </Select>
+
+          <Select value={dateFilter} onValueChange={setDateFilter}>
+            <SelectTrigger className="w-[130px]"><SelectValue placeholder="Date" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Time</SelectItem>
+              <SelectItem value="today">Today</SelectItem>
+              <SelectItem value="week">This Week</SelectItem>
+              <SelectItem value="month">This Month</SelectItem>
+            </SelectContent>
+          </Select>
+
           <Button variant="outline" onClick={fetchData} disabled={loading} className="gap-2">
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             {loading ? "Refreshing" : "Refresh"}
@@ -143,25 +215,30 @@ const SpinnerData = () => {
       </CardHeader>
 
       <CardContent>
-        <div className="rounded-2xl border">
-          <ScrollArea className="max-h-[70vh] rounded-2xl">
+        {/* ✅ Horizontal scroll container */}
+        <div className="w-full overflow-x-auto border rounded-2xl">
+          <div className="min-w-[1000px]">
             <Table>
               <TableHeader className="sticky top-0 bg-background z-10">
                 <TableRow>
-                  <TableHead className="min-w-[220px]">Name</TableHead>
-                  <TableHead className="min-w-[220px]">Email</TableHead>
-                  <TableHead className="min-w-[140px]">Contact</TableHead>
-                  <TableHead className="min-w-[280px]">Course</TableHead>
-                  <TableHead className="min-w-[120px]">Discount</TableHead>
-                  <TableHead className="min-w-[120px]">Status</TableHead>
-                  <TableHead className="min-w-[140px]">Actions</TableHead>
+                  <TableHead>Sr No</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Contact</TableHead>
+                  <TableHead>City</TableHead>
+                  <TableHead>Branch</TableHead>
+                  <TableHead>Course</TableHead>
+                  <TableHead>Discount</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Created At</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
 
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={7}>
+                    <TableCell colSpan={11}>
                       <div className="flex items-center gap-3 py-6">
                         <Loader2 className="h-4 w-4 animate-spin" />
                         <span className="text-sm text-muted-foreground">fetching applications…</span>
@@ -170,59 +247,40 @@ const SpinnerData = () => {
                   </TableRow>
                 ) : err ? (
                   <TableRow>
-                    <TableCell colSpan={7}>
-                      <div className="py-6">
-                        <p className="text-sm text-red-600">{`Error: ${err}`}</p>
-                        <p className="text-xs text-muted-foreground">
-                          check API baseURL ({import.meta.env.VITE_API_URL}) and CORS.
-                        </p>
-                      </div>
+                    <TableCell colSpan={11}>
+                      <p className="text-red-500 py-6 text-sm">Error: {err}</p>
                     </TableCell>
                   </TableRow>
                 ) : pageRows.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7}>
-                      <div className="py-6">
-                        <p className="text-sm text-muted-foreground">no results. try a different search.</p>
-                      </div>
+                    <TableCell colSpan={11}>
+                      <p className="py-6 text-muted-foreground text-sm">No results found.</p>
                     </TableCell>
                   </TableRow>
                 ) : (
-                  pageRows.map((row) => {
-                    const s = String(row.status || "").toLowerCase();
-                    const isDone = s === "done";
+                  pageRows.map((row, i) => {
                     const busy = !!rowBusy[row._id];
-
+                    const isDone = String(row.status).toLowerCase() === "done";
                     return (
                       <TableRow key={row._id}>
+                        <TableCell>{pageStart + i + 1}</TableCell>
                         <TableCell className="font-medium">{row.name || "—"}</TableCell>
                         <TableCell>
-                          <a href={`mailto:${row.email}`} className="underline-offset-4 hover:underline">
+                          <a href={`mailto:${row.email}`} className="hover:underline underline-offset-4">
                             {row.email || "—"}
                           </a>
                         </TableCell>
                         <TableCell>{row.contact || "—"}</TableCell>
-                        <TableCell>
-                          <div className="flex flex-col">
-                            <span className="line-clamp-1">{row.course_Name || "—"}</span>
-                            <span className="text-xs text-muted-foreground line-clamp-1">
-                              {row.url_Slug ? `/${row.url_Slug}` : "—"}
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {typeof row.discountPercent === "number" ? `${row.discountPercent}%` : "—"}
-                        </TableCell>
+                        <TableCell>{row.city || "—"}</TableCell>
+                        <TableCell>{row.branch || "—"}</TableCell>
+                        <TableCell className="max-w-[250px] truncate">{row.course_Name || "—"}</TableCell>
+                        <TableCell>{row.discountPercent ? `${row.discountPercent}%` : "—"}</TableCell>
                         <TableCell><StatusBadge status={row.status} /></TableCell>
+                        <TableCell>{fmtDate(row.createdAt)}</TableCell>
                         <TableCell>
-                          <Button
-                            size="sm"
-                            className="gap-2"
-                            onClick={() => markDone(row)}
-                            disabled={isDone || busy}
-                          >
+                          <Button size="sm" className="gap-2" onClick={() => markDone(row)} disabled={busy || isDone}>
                             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-                            {isDone ? "Done" : "Done"}
+                            Done
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -231,7 +289,7 @@ const SpinnerData = () => {
                 )}
               </TableBody>
             </Table>
-          </ScrollArea>
+          </div>
         </div>
 
         <div className="mt-4 flex items-center justify-between">
