@@ -91,6 +91,7 @@ const Register = () => {
             <option value="admin">Admin</option>
             <option value="modifier">Modifier</option>
             <option value="csr">CSR</option>
+            <option value="advertisement">Advertisement</option>
           </select>
           <input
             type="password"

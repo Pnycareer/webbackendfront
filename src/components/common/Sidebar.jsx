@@ -1,11 +1,11 @@
 import { BarChart2, BookAIcon, Menu, TrendingUp } from "lucide-react";
 import { useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import { Link, Outlet } from "react-router-dom";
 import { BiCategory } from "react-icons/bi";
 import { GiTeacher } from "react-icons/gi";
 import { MdEventNote, MdFolderSpecial } from "react-icons/md";
-import { TbCategory, TbWriting } from "react-icons/tb";
+import { TbWriting } from "react-icons/tb";
 import { FaQq } from "react-icons/fa6";
 import { FcGallery } from "react-icons/fc";
 import { GrGallery } from "react-icons/gr";
@@ -138,6 +138,12 @@ const ALL_SIDEBAR_ITEMS = [
     href: "/dashboard/brouchuredata",
   },
   {
+    name: "Enrollment Data",
+    icon: MdFolderSpecial,
+    color: "#F59E0B",
+    href: "/dashboard/enrollment-data",
+  },
+  {
     name: "Contact Data",
     icon: MdFolderSpecial,
     color: "#F59E0B",
@@ -220,23 +226,40 @@ const Sidebar = () => {
     setOpenDropdown((prev) => (prev === name ? null : name));
   };
 
-  // 🧠 Filter sidebar items by role
+  // 🔐 Role-based filtering
   const sidebarItems = ALL_SIDEBAR_ITEMS.filter((item) => {
+    // 1️⃣ If role is "advertisement" → ONLY show Enrollment Data
+    if (user?.role === "advertisement") {
+      return item.name === "Enrollment Data";
+    }
+
+    // 2️⃣ CSR role → only specific items
     if (user?.role === "csr") {
-      // allow multiple items for CSR role
       const allowedItems = ["Brouchure Data", "Contact Data", "Spinner Data"];
       return allowedItems.includes(item.name);
     }
 
+    // 3️⃣ Users menu → only for superadmin
     if (item.name === "Users" && user?.role !== "superadmin") {
-      return false; // hide 'Users' unless superadmin
+      return false;
     }
 
-    return true; // show everything else
+    // 4️⃣ Enrollment Data → only superadmin & advertisement
+    if (
+      item.name === "Enrollment Data" &&
+      user?.role !== "superadmin" &&
+      user?.role !== "advertisement"
+    ) {
+      return false;
+    }
+
+    // 5️⃣ everything else visible by default
+    return true;
   });
 
   return (
     <div className="flex h-screen">
+      {/* SIDEBAR */}
       <motion.div
         className={`relative z-10 transition-all duration-300 ease-in-out flex-shrink-0 bg-black text-white ${
           isSidebarOpen ? "w-64" : "w-20"

@@ -55,6 +55,7 @@ const HomeContent = lazy(() => import("../../pages/HomeContent/HomeContent"));
 const AddacademiaCourses = lazy(() => import("../../pages/Academia/Courses/AddacademiaCourses"));
 const AcademiaCourses = lazy(() => import("../../pages/Academia/Courses/AcademiaCourses"));
 const EditAcademiaCourses = lazy(() => import("../../pages/Academia/Courses/EditAcademiaCourse"));
+const LandinData = lazy(() => import("../../pages/Landing/AllLandingData"));
 
 
 
@@ -155,6 +156,7 @@ const router = createBrowserRouter([
       { path: "brouchuredata", element: withSuspense(Brouchuredata) },
       { path: "contact-data", element: withSuspense(ContactData) },
       { path: "spinner", element: withSuspense(SpinnerData) },
+      { path: "enrollment-data", element: withSuspense(LandinData) },
 
       { path: "faqs", element: withSuspense(FaqList) },
       { path: "editfaq/:id", element: withSuspense(EditFaq) },
